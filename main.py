@@ -1,3 +1,6 @@
+import os
+import json
+
 class User:
     def __init__(self, Email, username, password, active):
         self.Email = Email
@@ -12,15 +15,41 @@ class User:
         else:
             self.username = username
 
-User1 = User("", "", "", "Active")
-User1.Email = input('Enter your Email: ')
-file = open("Users.txt" , 'a+')
 
-User1.setUsername(input('Enter a username: ') , file)
-User1.password = input('Enter your password: ')
-file.write('\n' + User1.username)
-file.close()
+def sign_in ():
+    username = input('Enter username: ')
+    password = input('Enter password: ')
+    if os.path.exists(file):
+        file = open("Users.txt")
+        if username in file.read():
+            print('yes')
+        else:
+            print('Username is not exsits. create an account first.')
+            create_acount()
 
-file = open(User1.username+".txt" , 'w')
-file.write(User1.Email + '\n' + User1.username + '\n' +  User1.password + '\n' + User1.active + '\n')
-file.close()
+def create_acount ():
+    User1 = User("", "", "", "Active")
+    User1.Email = input('Enter your Email: ')
+    if not os.path.exists("Users.txt"):
+        file = open("Users.json", 'w')
+        lst = []
+        json.dump(lst,file)
+        file.close()
+    file = open("Users.json")
+    User1.setUsername(input('Enter a username: ') , json.load(file))
+    User1.password = input('Enter your password: ')
+
+    with open("Users.json", 'r') as file:
+        data = json.load(file)
+    new_name = User1.username
+    data.append(new_name)
+    with open("Users.json", 'w') as file:
+        json.dump(data, file, indent=0)
+
+    file = open(User1.username + ".json" , 'w')
+    item = {"Email" : User1.Email , "username" : User1.username , "password" : User1.password , "active" : User1.active}
+    json.dump(item, file, indent=4)
+    file.close()
+
+create_acount()
+
