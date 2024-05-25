@@ -49,7 +49,7 @@ class project:
                 return
 
         elif  len(ID) < 4 or len(ID) > 10: #incorrect username
-            self.ID(input("Characters must be between 4 and 10. \nEnter another one:"), file)
+            self.setID(input("Characters must be between 4 and 10. \nEnter another one:"), file)
         else: #correct username & save
             self.ID = ID
 
@@ -87,7 +87,7 @@ def sign_in (username, password):
         information = eval(decrypted.decode()) #byte to str
         if information['password'] == password: #check password
             if information["active"] == 'Active':
-                print(Text('yes', 'bold green')) 
+                Account_page(username)
             else:
                 print('no')
         else:
@@ -134,7 +134,7 @@ def create_acount ():
 
     #adding information in another file
     file = open('users/' + User1.username + ".json" , 'w')
-    item = {"Email" : User1.Email , "username" : User1.username , "password" : User1.password , "active" : User1.active}
+    item = {"Email" : User1.Email , "username" : User1.username , "password" : User1.password , "active" : User1.active, "projects" : []}
     json.dump(item, file, indent=4)
     file.close()
 
@@ -155,25 +155,46 @@ def create_acount ():
         encrypted_file.write(encrypted)
 
 def create_project (username):
+    #Create Project
     project1 = project(username, '', '', [], [username])
-    ID = input('Enter a project ID: ') #Unik ID
+    #create "ID.json"
+    if not os.path.exists("ID.json"):
+        with open("ID.json", 'w') as file:
+            lst = []
+            json.dump(lst,file, indent=0)
+    #get ID
+    ID = input('Enter a project ID: ') #Unik ID & Save
     with open("ID.json", 'r') as file:    
         data = json.load(file)
         project1.setID(ID, data)
         data.append(project1.ID)
-    with open("ID.json", 'w') as file:
+    with open("ID.json", 'w') as file: 
         json.dump(data, file, indent=0)
 
     project1.Title = input('Enter a title: ') #Title
-
-    user = input('Invite users to this project.\nEnter username or 1 to end: ') #Add Users
-    if user == '1':
-        Account_page()
-    else:
-        with open('Users.json', 'r') as file:
+    user = username
+    while user != '1':
+        user = input('Invite users to this project.\nEnter username or 1 to end: ') #Add Users
+        with open('Users.json', 'r') as file: #Add Users
             project1.add_user(user, file.read())
-    
+        #Add project to Users (encrypt)
+        with open("mykey.key", 'rb') as mykey: #receive key 
+            key = mykey.read()
+        f = Fernet(key)
+        with open('users/' + username + '.json', 'rb') as encrypted_file: #receive user information 
+            encrypted = encrypted_file.read()
+        decrypted = f.decrypt(encrypted) #decryption
+        information = eval(decrypted.decode()) #byte to str to dict
+        information['projects'].append(project1.ID)
+        print(information)
+        with open('users/' + username + '.json', 'wb') as file:
+            encrypted = f.encrypt(encode(information))
+            
 
+    Account_page()
+
+    # Save Project   
+    
 
 def menu():
     from rich import print
