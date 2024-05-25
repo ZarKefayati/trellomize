@@ -189,7 +189,7 @@ def create_project (username):
         print(information)
         with open('users/' + username + '.json', 'wb') as file:
             encrypted = f.encrypt(encode(information))
-            
+            file.write(encrypted)
 
     Account_page()
 
