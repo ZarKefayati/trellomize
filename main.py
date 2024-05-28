@@ -6,6 +6,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.console import Console
 import datetime as dt
+import uuid
 
 
 class User:
@@ -30,30 +31,31 @@ class User:
             self.username = username
 
 class Tasks:
-    def __init__(self ,name="" ,description="", priority="" ,status=""):
-        self.uniq_id = uuid.uuid4()
+    def __init__(self ,name="" ,description="", priority="LOW" ,status="BACKLOG", hour = 24, day = 0, members = []): 
+        self.ID = uuid.uuid4()
         self.name=name
         self.description=description
         self.start_date = dt.datetime.now()
-        self.last_date = dt.combine(dt.today(), self.start_date + dt.timedelta(hours=24).time())
-        
-        self.degr=("CRITICAL" , "HIGH" , "MEDIUM" , "LOW")
+        self.last_date = self.start_date + dt.timedelta(hours=hour, days=day)
+        self.degr=["CRITICAL" , "HIGH" , "MEDIUM" , "LOW"]
         if priority in self.degr:
             self.priority = priority
         else:
-            print("Your priority is not able")
-        self.position = ("BACKLOG" , "TODO" , "DOING" , "DONE" , "ARCHIVED") 
+            print("the priority is not able")
+        self.position = ["BACKLOG" , "TODO" , "DOING" , "DONE" , "ARCHIVED"]
         if status in self.position:
-            self.position = status 
+            self.status = status 
+        else:
+            print("the status is not able")
 
         self.history = [] 
         self.comments = []
-
+        self.members = members
     def add_history(self, user, change_assiAssignees, change_priority, change_status):
         self.history.append({'user':user,'change_in_assiAssignees':change_assiAssignees, 'change_in_priority':change_priority,'change_in_status':change_status, 'timestamp':dt.now()})
 
     def add_comment(self, username, comment):
-        self.comments.append({'username':username,'comment':comment,'start_date':dt.now()})
+        self.comments.append({'username':username,'comment':comment,'start_date':dt.datetime.now()})
     
     def __repr__(self):
         return (f"Task(id={self.uniq_id}, title={self.task_name}, start_date={self.start_date}"+
@@ -61,11 +63,10 @@ class Tasks:
                 f"history={self.history}, comments={self.comments}")
 
 class project:
-    def __init__(self, Leader, ID, Title, Fields, Users): 
+    def __init__(self, Leader, ID, Title, Users): 
         self.Leader = Leader
         self.ID = ID
         self.Title = Title
-        self.Fields = Fields
         self.tasks_dict = {}
         self.Users = set() # assignees
     
@@ -84,10 +85,10 @@ class project:
         else: #correct username & save
             self.ID = ID
 
-    def add_user(self, username , file):
+    def add_member(self, username , file):
         if username in file: #Correct Username 
             if username not in self.Users: 
-                self.Users.append(username) #save
+                self.Users.add(username) #save
             else: #Duplicate Username
                 username = input ("User is already here. \nEnter another one or 1 to exit:")
                 if username == '1': 
@@ -131,7 +132,6 @@ class project:
     def Assignees(self):
         for t, m in self.tasks_dict.items():
             print(f"this task : {m} is given to : {t}") #can use new file
-
 
 
 def sign_in (username, password):
@@ -195,7 +195,13 @@ def create_acount ():
 
     #adding information in another file
     file = open('users/' + User1.username + ".json" , 'w')
-    item = {"Email" : User1.Email , "username" : User1.username , "password" : User1.password , "active" : User1.active, "projects" : []}
+    item = {"Email" : User1.Email ,
+     "username" : User1.username ,
+     "password" : User1.password ,
+     "active" : User1.active,
+     "projects_Leader" : [],
+     "projects_Memder" : []
+    }
     json.dump(item, file, indent=4)
     file.close()
 
@@ -207,7 +213,6 @@ def create_acount ():
     else:
         with open('mykey.key', 'rb') as mykey:
             key = mykey.read()
-
     f = Fernet(key)  #encryption
     with open('users/' + User1.username + ".json", 'rb') as original_file:
         original = original_file.read()
@@ -218,7 +223,7 @@ def create_acount ():
 
 def create_project (username):
     #Create Project
-    project1 = project(username, '', '', [], [username])
+    project1 = project(username, '', '', [username])
     #create "ID.json"
     if not os.path.exists("ID.json"):
         with open("ID.json", 'w') as file:
@@ -237,7 +242,7 @@ def create_project (username):
     user = username
     while user != '1':
         with open('Users.json', 'r') as file: #Add Users
-            project1.add_user(user, file.read())
+            project1.add_member(user, file.read())
         #Add project to Users (encrypt)
         with open("mykey.key", 'rb') as mykey: #receive key 
             key = mykey.read()
@@ -259,16 +264,159 @@ def create_project (username):
     # Save Project
     information = {
         'ID' : project1.ID,
-        'title' : project1.Title,
-        'members' :  project1.Users
-        'fields' : project1.Fields,
+        'Leader' : project1.Leader,
+        'Title' : project1.Title,
+        'Members' :  project1.Users,
+        'Tasks' : project1.Fields
         }
     with open('projects/' + project1.ID + '.json', 'w') as file:
         json.dump(information, file, indent=4)   
 
     Account_page(username)
 
-def create_Task (ID):
+
+def edit_task_member (task1, ID, username):
+    print(Text('task is created. you can change the details.' , 'blue'), 
+    Panel('1.title'+ '\n' '2.description' + '\n' '3.start & end time' + '\n'
+    '4.change priority (CRITICAL, HIGH, MEDIUM, LOW(default)' + '\n'
+    '5.change status (BACKLOG(default), TODO, DOING, DONE, ARCHIVED)'+ '\n'
+    '6.give to members' + '\n' '7.add comment' + '\n' + '8.Show details'))
+    k = input()
+    if k == '1':
+        task1.name = input('Enter a title: ') #Title
+        edit_task_member (task1, ID, username)
+        return
+
+    elif k == '2':
+        task1.description = input('description of task (optional): ')
+        edit_task_member (task1, ID, username)
+        return
+
+    elif k == '3':
+        #start
+        try: #does not match format
+            input_year = input('Enter your Date to start: (e.g. 2024.01.01 15:30:00)')
+            syear = dt.datetime.strptime(input_year, "%Y.%m.%d %H:%M:%S")
+            task1.start_date_date = syear
+        except:
+            print (f"time data {input_year} does not match format '%Y.%m.%d %H:%M:%S'")
+        finally:
+            print (task1.start_date)
+        #end
+        try: #does not match format
+            input_year = input('Enter your Date to end: (e.g. 2024.01.01 15:30:00)')
+            syear = dt.datetime.strptime(input_year, "%Y.%m.%d %H:%M:%S")
+            task1.last_date = syear
+        except:
+            print (f"time data {input_year} does not match format '%Y.%m.%d %H:%M:%S'")
+        finally:
+            print (task1.last_date)
+        edit_task_member (task1, ID, username)
+        return
+
+    elif k == '4':
+        n = input('1.CRITICAL\n2.HIGH\n3.MEDIUM\n4.LOW(default)\n')
+        if n.isdigit() and 0 < int(n) < 5:
+            task1.priority = task1.degr[int(n)-1]
+        else:
+            print('invalid number')
+        edit_task_member (task1, ID, username)
+        return
+
+    elif k == '5':
+        n = input('1.BACKLOG(default) \n2.TODO \n3.DOING \n4.DONE \n5.ARCHIVED\n')
+        if n.isdigit() and 0 < int(n) < 6:
+            task1.status = task1.position[int(n)-1]
+        else:
+            print('invalid number')
+        edit_task_member (task1, ID, username)
+        return
+
+    elif k == '6':
+        with open ('projects/' + ID + '.json') as file:
+            information = eval(file.read())
+        if username == information['Leader']:
+            name = input('Enter member: ')
+            if name in information['members']:
+                task1.members.append(name)
+            else:
+                print('user is not member of project.')
+        else:
+            print("you ara not leader in the project.",
+             "you can't add members.")
+        edit_task_member (task1, ID, username)
+        return
+
+    elif k == '7':
+        comment = input('Enter your comment: ')
+        task1.add_comment(username, comment)
+        edit_task_member (task1, ID, username)
+        return
+    
+    elif k == '8':
+        task_details = {
+            "ID" : task1.ID,
+            "Title" : task1.name,
+            "Description" : task1.description,
+            "Start Date" : task1.start_date,  
+            "End Date" : task1.last_date,
+            "priority" : task1.priority,
+            "Status" : task1.status,
+            "Members" : task1.members,
+            "Comments" : task1.comments,
+            "History" : task1.history
+        }
+        print(task_details)
+        edit_task_member (task1, ID, username)
+        return
+
+def task_editor(task1, ID, username):
+    print(Panel('1.add comment' + '\n' + '2.Show details'))
+    if k == '1':
+        comment = input('Enter your comment: ')
+        task1.add_comment(username, comment)
+        task_editor(task1, ID, username)
+        return
+    
+    elif k == '2':
+        task_details = {
+            "ID" : task1.ID,
+            "Title" : task1.name,
+            "Description" : task1.description,
+            "Start Date" : task1.start_date,  
+            "End Date" : task1.last_date,
+            "priority" : task1.priority,
+            "Status" : task1.status,
+            "Members" : task1.members,
+            "Comments" : task1.comments,
+            "History" : task1.history
+        }
+        print(task_details)
+        task_editor(task1, ID, username)
+        return
+    pass
+
+def create_Task (ID, username):
+    task1 = Tasks()
+    edit_task(task1, ID, username)
+    with open ('projects/' + ID + '.json', 'r') as file:
+        information = eval(file.read())
+    task_item = {
+        "ID" : task1.ID,
+        "Title" : task1.name,
+        "Description" : task1.description,
+        "Start Date" : task1.start_date,  
+        "End Date" : task1.last_date,
+        "priority" : task1.priority,
+        "Status" : task1.status,
+        "Members" : task1.members,
+        "Comments" : task1.comments,
+        "History" : task1.history
+    }
+    information["Tasks"].append(task_item)
+
+    with open ('projects/' + ID + '.json', 'w') as file:
+        json.dump (information, file, indent=4)
 
 
 def menu():
