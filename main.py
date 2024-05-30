@@ -64,12 +64,12 @@ class Tasks:
                 f"history={self.history}, comments={self.comments}")
 
 class project:
-    def __init__(self, Leader, ID, Title, Users): 
+    def __init__(self, Leader, ID, Title, Users = []): 
         self.Leader = Leader
         self.ID = ID
         self.Title = Title
         self.tasks_dict = {}
-        self.Users = [] # assignees
+        self.Users = Users 
     
     def setID(self, ID , file):
         if ID in file: #Duplicate username
@@ -173,6 +173,7 @@ def info_to_obj_task(task_item): #info = dict / task
 
 def info_to_obj_proj(info): #info = dict / proj
     project1 = project(info['Leader'], info['ID'], info['Title'], info['Members'])
+    project1.Users = info['Members']
     project1.Field = info['Tasks']
     return project1
 
@@ -317,7 +318,9 @@ def edit_projet_leader(project, username):
                 i_id[str(i+1)] = ID
             print(Panel(Text('\n'.join(lst) , 'magenta')))
             i = input(Text('Choose number to show details(or -1 to exit): ', 'green'))
-            if i.isdigit() and 0 < int(i) < len(): 
+            if i == '-1' :
+                return
+            elif i.isdigit() and 0 < int(i) < len(): 
                 if username in project.tasks_dict[ID]['Members']:
                     edit_task_member(info_to_obj_task(project.tasks_dict[ID]), ID, username)
                     return
@@ -325,7 +328,7 @@ def edit_projet_leader(project, username):
                     task_editor(info_to_obj_task(project.tasks_dict[ID]), ID, username)
                     return
             else:
-                print(Text('Invalid commit!' , 'red'))
+                print(Text('Invalid number!' , 'red'))
 
         elif k == '3':
             print(Text(f'ID : {project.ID} \nTitle : {project.Title}' , 'green'))
@@ -406,7 +409,7 @@ def edit_task_member (task1, ID, username):
             information = eval(file.read())
         if username == information['Leader']:
             name = input('Enter member: ')
-            if name in information['members']:
+            if name in information['Members']:
                 task1.members.append(name)
             else:
                 print('user is not member of project.')
@@ -476,7 +479,7 @@ def create_Task (ID, username):
     }
     with open ('projects/' + ID + '.json', 'r') as file:
         information = eval(file.read())
-    information["Tasks"].append(task_item)
+    information["Tasks"][task1.ID] = task_item
     with open ('projects/' + ID + '.json', 'w') as file:
         json.dump (information, file, indent=4)
 
@@ -510,6 +513,7 @@ def show_projects(username, c): #c = leader (1) or member (2)
             info = eval(file.read())
         project = info_to_obj_proj(info)
         edit_projet_leader(project, username)
+        show_projects(username, c)
     # except:
     #     print('Sorry! Project not found.')
     #     Account_page(username)
