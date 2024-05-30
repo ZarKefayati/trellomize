@@ -24,7 +24,6 @@ class User:
         else:
             self.username = username
 
-
 class Tasks:
     def __init__(self ,name="" ,description="", priority="LOW" ,status="BACKLOG", hour = 24, day = 0, members = []): 
         self.ID = uuid.uuid4()
@@ -204,7 +203,6 @@ def sign_in (username, password):
             sign_in(k, password)
             return
 
-
 def create_acount ():
     User1 = User("", "", "", "Active")
     User1.Email = input('Enter your Email: ')
@@ -224,25 +222,13 @@ def create_acount ():
     with open("Users.json", 'w') as file:
         json.dump(data, file, indent=0)
 
-    file = open(User1.username + ".json" , 'w')
+    #create user file
     item = {"Email" : User1.Email , "username" : User1.username , "password" : User1.password , "active" : User1.active}
-    json.dump(item, file, indent=4)
-    file.close()
-
-    #encryption
     if not os.path.exists('mykey.key'): #create key & save
         key = Fernet.generate_key()
         with open('mykey.key', 'wb') as mykey:
             mykey.write(key)
-    else:
-        with open('mykey.key', 'rb') as mykey:
-            key = mykey.read()
-    f = Fernet(key)  #encryption
-    with open('users/' + User1.username + ".json", 'rb') as original_file:
-        original = original_file.read()
-    encrypted = f.encrypt(original)
-    with open('users/' + User1.username + ".json", 'wb') as encrypted_file:
-        encrypted_file.write(encrypted)
+    encrypt_user_info(User1.username, item)
     menu()
 
 def create_project (username):
@@ -443,8 +429,10 @@ def show_projects(username, c): #c = leader (1) or member (2)
         lst = information['projects_Member']
     else:
         print("I didn't understand!")
-
         return
+    for i in lst:
+        with open('projects/' + i + '.json', 'r') as file:
+            print(file.read())
 
 
     # print(information["Tasks"])
@@ -505,7 +493,7 @@ def show_tasks(ID):
         f"History: {task["History"]}")
 
 def menu():
-    os.system('cls')
+    # os.system('cls')
     from rich.text import Text
     from rich.console import Console
     console = Console()
