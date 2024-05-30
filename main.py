@@ -136,17 +136,17 @@ class project:
 
 #Tools
 def decrypt_user_info(username):
-    with open("mykey.key", 'rb') as mykey: #receive key 
-        key = mykey.read()
-        f = Fernet(key)
-    with open('users/' + username + '.json', 'rb') as encrypted_file: #receive user information 
-        encrypted = encrypted_file.read()
-    try: #file is empty
-        decrypted = f.decrypt(encrypted) #decryption
-        information = eval(decrypted.decode()) #byte to str to dict
-        return information
+    try: #file is empty or not exists
+        with open("mykey.key", 'rb') as mykey: #receive key 
+            key = mykey.read()
+            f = Fernet(key)
+        with open('users/' + username + '.json', 'rb') as encrypted_file: #receive user information 
+            encrypted = encrypted_file.read()
+            decrypted = f.decrypt(encrypted) #decryption
+            information = eval(decrypted.decode()) #byte to str to dict
+            return information
     except:
-        print(Text('Sorry! something went wrong. \nyou should sign up again :(', 'red'))
+        print(Text('Sorry! something went wrong. \nUser not found!', 'red'))
         menu()
 
 def encrypt_user_info(username, info):
@@ -172,11 +172,8 @@ def info_to_obj_task(task_item): #info = dict / task
     return task1
 
 def info_to_obj_proj(info): #info = dict / proj
-    project1.ID = info['ID']
-    project1.Leader = ['Leader']
-    project1.Title = ['Title']
-    project1.Users = ['Members']
-    project1.Field = ['Tasks']
+    project1 = project(info['Leader'], info['ID'], info['Title'], info['Members'])
+    project1.Field = info['Tasks']
     return project1
 
 
@@ -274,7 +271,11 @@ def create_project (username):
         with open('Users.json', 'r') as file: #Add Users
             project1.add_member(user, file.read())
         #Add project to Users (encrypt)
-        information = decrypt_user_info(user)
+        if os.path.exists('users/' + user + '.json'):
+            information = decrypt_user_info(user)
+        else:
+            print('user not found!')
+            return
         if user != username:
             information['projects_Memder'].append(project1.ID)
         else:
@@ -294,11 +295,53 @@ def create_project (username):
     print(information)
     with open('projects/' + project1.ID + '.json', 'w') as file:
         json.dump(information, file, indent=4)   
-    edit_projet(project1)
+    edit_projet_leader(project1,username)
     Account_page(username)
 
-def edit_projet_leader(project): 
-    print(Panel(Text("1.show members \n2.show tasks \n3.exit", 'yellow')))
+def edit_projet_leader(project, username): 
+    print(Panel(Text("1.show members \n2.show tasks & edit \n3.change info \n4.add/remove member \n5.add/remove tasks \n6.exit", 'yellow')))
+    k = input()
+    if k == '1':
+        print(project.Users)
+        edit_projet_leader(project, username)
+        return
+    elif k == '2':
+        n = input('1.New Task\n2.show tasks')
+        if n == '1':
+            create_Task(project.ID, username)
+        elif n == '2':
+            i_id = {}
+            lst = []
+            for i, ID in zip(range(len(project.tasks_dict)), project.tasks_dict.keys()):
+                lst.append(str(i+1) + '+' + project.tasks_dict[ID][Title])
+                i_id[str(i+1)] = ID
+            print(Panel(Text('\n'.join(lst) , 'magenta')))
+            i = input(Text('Choose number to show details(or -1 to exit): ', 'green'))
+            if i.isdigit() and 0 < int(i) < len(): 
+                if username in project.tasks_dict[ID]['Members']:
+                    edit_task_member(info_to_obj_task(project.tasks_dict[ID]), ID, username)
+                    return
+                else:
+                    task_editor(info_to_obj_task(project.tasks_dict[ID]), ID, username)
+                    return
+            else:
+                print(Text('Invalid commit!' , 'red'))
+
+        elif k == '3':
+            print(Text(f'ID : {project.ID} \nTitle : {project.Title}' , 'green'))
+            print('1.change ID\n2.change Title')
+            n = input()
+            if n == '1':
+                newID = input(Text('Enter new ID', 'magenta'))
+                project.tasks_dict[newID]=project.tasks_dict.pop(ID)
+                project.tasks_dict[newID][ID] = newID
+            elif n == '2':
+                newTitle = input(Text('Enter new Title', 'magenta'))
+                project.tasks_dict[ID][Title] = newTitle
+            else:
+                print(Text('invalid number!' , 'red'))
+                return
+
 
 def edit_task_member (task1, ID, username):
     print(Text('you can change the details.' , 'blue'), 
@@ -452,20 +495,25 @@ def show_projects(username, c): #c = leader (1) or member (2)
     table.add_column("Title", justify="right", style="yellow")
     table.add_column("Leader", style="magenta")
     id_i = {}
-    for i , ID in zip(range(len(id_lst)), id_lst.keys()):
+    # try: # error in open file
+    for i , ID in enumerate(id_lst):
         with open('projects/' + ID + '.json', 'r') as file:
             info = eval(file.read())
-        table.add_row(str(i+1), ID, project["Title"], project["Leader"])
+        table.add_row(str(i+1), ID, info["Title"], info["Leader"])
         id_i[str(i+1)] = ID
-
-    i = input(Text('Choose number to show details(or -1 to exit): ', 'green'))
+    print(table)
+    i = input(Text('Choose number to show details(or -1 to exit): ', 'red'))
     if i == '-1':
         Account_page(username)
     elif i.isdigit() and 0 < int(i) < (len(id_i) + 1) :
         with open ('projects/' + id_i[i] + '.json') as file:
             info = eval(file.read())
-        project = info_to_obj_proj(id_i(i))
-        edit_projet(project)
+        project = info_to_obj_proj(info)
+        edit_projet_leader(project, username)
+    # except:
+    #     print('Sorry! Project not found.')
+    #     Account_page(username)
+
 
 
 
@@ -553,7 +601,6 @@ def Account_page(username):
         create_project(username)
     elif k == '2' or k == '3':
         show_projects(username, k)
-
 
 
 menu()
