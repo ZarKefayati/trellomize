@@ -17,11 +17,18 @@ class User:
         self.password = password
         self.active = active
     def setUsername(self, username , file):
-        if username in file:
-            self.setUsername(input("The username is already available. Enter another one:"), file)
-        elif  len(username) < 4 or len(username) > 10:
-            self.setUsername(input("Characters must be between 4 and 10. Enter another one:"), file)
-        else:
+        if username in file: #Duplicate username
+            username = input ("Username already exists. Enter username or 1 to exit:")
+            if username == '1': 
+                menu()
+                return
+            else:
+                self.setUsername(username, file)
+                return
+
+        elif  len(username) < 4 or len(username) > 10: #incorrect username
+            self.setUsername(input("Characters must be between 4 and 10. \nEnter another one:"), file)
+        else: #correct username & save
             self.username = username
 
 class Tasks:
@@ -128,6 +135,8 @@ class project:
             print(f"this task : {m} is given to : {t}") #can use new file
 
 
+   
+
 #Tools
 def decrypt_user_info(username):
     with open("mykey.key", 'rb') as mykey: #receive key 
@@ -174,7 +183,6 @@ def info_to_obj_proj(info): #info = json / proj
     return project1
 
 
-
 def sign_in (username, password):
     #decryption
     if os.path.exists('users/' + username + ".json"):
@@ -200,37 +208,53 @@ def sign_in (username, password):
             menu()
             return
         else:
+
             sign_in(k, password)
             return
 
 def create_acount ():
     User1 = User("", "", "", "Active")
-    User1.Email = input('Enter your Email: ')
-    if not os.path.exists("Users.txt"):
-        file = open("Users.json", 'w')
-        lst = []
-        json.dump(lst,file)
-        file.close()
-    file = open("Users.json")
-    User1.setUsername(input('Enter a username: ') , json.load(file))
-    User1.password = input('Enter your password: ')
 
-    with open("Users.json", 'r') as file:
+    #get Email
+    User1.Email = input('Enter your Email: ')
+
+    #create Users.json
+    if not os.path.exists("Users.json"):
+        with open("Users.json", 'w') as file:
+            lst = []
+            json.dump(lst,file, indent=0)
+
+    #get username
+    username = input('Enter a username: ')
+    with open("Users.json", 'r') as file:    
         data = json.load(file)
-    new_name = User1.username
-    data.append(new_name)
+        User1.setUsername(username, data)
+        data.append(User1.username)
     with open("Users.json", 'w') as file:
         json.dump(data, file, indent=0)
 
-    #create user file
-    item = {"Email" : User1.Email , "username" : User1.username , "password" : User1.password , "active" : User1.active}
+
+    #get password
+    User1.password = input('Enter your password: ')
+
+
+    #adding information in another file
+    item = {"Email" : User1.Email ,
+     "username" : User1.username ,
+     "password" : User1.password ,
+     "active" : User1.active,
+     "projects_Leader" : [],
+     "projects_Memder" : []
+    }
+    
     if not os.path.exists('mykey.key'): #create key & save
         key = Fernet.generate_key()
         with open('mykey.key', 'wb') as mykey:
             mykey.write(key)
     encrypt_user_info(User1.username, item)
     menu()
-
+    
+    
 def create_project (username):
     #Create Project
     project1 = project(username, '', '', [username])
@@ -269,14 +293,13 @@ def create_project (username):
         'Leader' : project1.Leader,
         'Title' : project1.Title,
         'Members' :  project1.Users,
-        'Tasks' : project1.tasks_dict
+        'Tasks' : project1.Fields
         }
     print(information)
     with open('projects/' + project1.ID + '.json', 'w') as file:
         json.dump(information, file, indent=4)   
 
     Account_page(username)
-
 
 def edit_projet():
     pass
@@ -289,7 +312,7 @@ def edit_task_member (task1, ID, username):
     '6.give to members' + '\n' '7.add comment' + '\n' + '8.Show details'
      + '\n' + '9.exit'))
     k = input()
-    if k == '1':
+  if k == '1':
         task1.name = input('Enter a title: ') #Title
         edit_task_member (task1, ID, username)
         return
@@ -371,6 +394,7 @@ def edit_task_member (task1, ID, username):
     else:
         print("I didn't understand! What should I do?")
 
+        
 def task_editor(task1, ID, username):
     print(Panel('1.add comment' + '\n' + '2.Show details'))
     if k == '1':
@@ -395,11 +419,10 @@ def task_editor(task1, ID, username):
         print(task_details)
         task_editor(task1, ID, username)
         return
-    pass
 
 def create_Task (ID, username):
     task1 = Tasks()
-    
+ 
     with open ('projects/' + ID + '.json', 'r') as file:
         information = eval(file.read())
     task_item = {
@@ -420,6 +443,7 @@ def create_Task (ID, username):
         json.dump (information, file, indent=4)
 
     edit_task_member(task1, ID, username)
+
 
 def show_projects(username, c): #c = leader (1) or member (2)
     information = decrypt_user_info(username)
@@ -512,7 +536,6 @@ def menu():
         print("I didn't understand! (Enter 1 or 2!)\n")
         menu()
 
-
 def Account_page(username):
     panel = Panel(Text(f'WELCOME {username}! \n1. create project\n2. leader projects\n3. user projects',"bold yellow", justify="left"))
     print(panel)
@@ -525,3 +548,4 @@ def Account_page(username):
 
 
 menu()
+
