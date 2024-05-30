@@ -1,5 +1,14 @@
 import os
 import json
+from cryptography.fernet import Fernet
+from rich import print
+from rich.panel import Panel
+from rich.text import Text
+from rich.console import Console
+from rich.table import Table
+import datetime as dt
+import uuid
+console = Console()
 
 class User:
     def __init__(self, Email, username, password, active):
@@ -16,16 +25,185 @@ class User:
             self.username = username
 
 
-def sign_in ():
-    username = input('Enter username: ')
-    password = input('Enter password: ')
-    if os.path.exists(file):
-        file = open("Users.txt")
-        if username in file.read():
-            print('yes')
+class Tasks:
+    def __init__(self ,name="" ,description="", priority="LOW" ,status="BACKLOG", hour = 24, day = 0, members = []): 
+        self.ID = uuid.uuid4()
+        self.name=name
+        self.description=description
+        self.start_date = dt.datetime.now()
+        self.last_date = self.start_date + dt.timedelta(hours=hour, days=day)
+        self.degr=["CRITICAL" , "HIGH" , "MEDIUM" , "LOW"]
+        if priority in self.degr:
+            self.priority = priority
         else:
-            print('Username is not exsits. create an account first.')
-            create_acount()
+            print("the priority is not able")
+        self.position = ["BACKLOG" , "TODO" , "DOING" , "DONE" , "ARCHIVED"]
+        if status in self.position:
+            self.status = status 
+        else:
+            print("the status is not able")
+
+        self.history = [] 
+        self.comments = []
+        self.members = members
+    def add_history(self, user, change_assiAssignees, change_priority, change_status):
+        self.history.append({'user':user,'change_in_assiAssignees':change_assiAssignees, 'change_in_priority':change_priority,'change_in_status':change_status, 'timestamp':dt.now()})
+
+    def add_comment(self, username, comment):
+        self.comments.append({'username':username,'comment':comment,'start_date':dt.datetime.now()})
+    
+    def __repr__(self):
+        return (f"Task(id={self.uniq_id}, title={self.task_name}, start_date={self.start_date}"+
+                f"end_date={self.last_date}, "+
+                f"history={self.history}, comments={self.comments}")
+
+class project:
+    def __init__(self, Leader, ID, Title, Users): 
+        self.Leader = Leader
+        self.ID = ID
+        self.Title = Title
+        self.tasks_dict = {}
+        self.Users = set() # assignees
+    
+    def setID(self, ID , file):
+        if ID in file: #Duplicate username
+            ID = input ("Username already exists. Enter username or 1 to exit:")
+            if ID == '1': 
+                Account_page(username)
+                return
+            else:
+                self.setID(ID, file)
+                return
+
+        elif  len(ID) < 4 or len(ID) > 10: #incorrect username
+            self.setID(input("Characters must be between 4 and 10. \nEnter another one:"), file)
+        else: #correct username & save
+            self.ID = ID
+
+    def add_member(self, username , file):
+        if username in file: #Correct Username 
+            if username not in self.Users: 
+                self.Users.add(username) #save
+            else: #Duplicate Username
+                username = input ("User is already here. \nEnter another one or 1 to exit:")
+                if username == '1': 
+                    Account_page(username)
+                    return
+                else:
+                    self.add_member(username, file)
+                    return
+
+        else: #Unavailable Username
+            username = input ("Username is not exists. Enter username or 1 to exit:")
+            if username == '1': 
+                Account_page(username)
+                return
+            else:
+                self.add_user(username, file)
+                return
+
+    def add_task(self, task_name, members_names): #members_names is a list
+        for member_name in members_names:
+            if member_name not in self.Users:
+                print(f"'{member_name}' is not in the members of project.")
+                return
+        self.tasks_dict[task_name] = members_names
+        print(f"{task_name} is given to {members_names}.")
+
+
+    def add_member_to_task(self, task_name, member_name):
+        if member_name in self.Users:
+            self.tasks_dict[task_name].append(member_name)
+            print(f"{task_name} is given to {member_name}.")
+        else:
+            print(f"'{member_name}' is not in the members of project.")
+
+
+
+    def delete_task(self, task_name):
+        del_task = self.tasks_dict.pop(task_name)
+        print(f" task '{task_name}' deleted.")
+
+    def Assignees(self):
+        for t, m in self.tasks_dict.items():
+            print(f"this task : {m} is given to : {t}") #can use new file
+
+
+#Tools
+def decrypt_user_info(username):
+    with open("mykey.key", 'rb') as mykey: #receive key 
+        key = mykey.read()
+        f = Fernet(key)
+    with open('users/' + username + '.json', 'rb') as encrypted_file: #receive user information 
+        encrypted = encrypted_file.read()
+    try: #file is empty
+        decrypted = f.decrypt(encrypted) #decryption
+        information = eval(decrypted.decode()) #byte to str to dict
+        return information
+    except:
+        print(Text('Sorry! something went wrong. \nyou should sign up again :(', 'red'))
+        menu()
+
+def encrypt_user_info(username, info):
+    with open("mykey.key", 'rb') as mykey: #receive key 
+        key = mykey.read()
+        f = Fernet(key)
+    with open('users/' + username + '.json', 'wb') as file:
+        encrypted = f.encrypt((str(info)).encode())
+        file.write(encrypted)
+
+def info_to_obj_task(task_item): #info = json / task
+    task = Tasks()
+    task1.ID = task_item["ID"]
+    task1.name = task_item["Title"] 
+    task1.description = task_item["Description"]
+    task1.start_date,  = task_item["Start Date"]
+    task1.last_date = task_item["End Date"] 
+    task1.priority = task_item["priority"] 
+    task1.status = task_item["Status"] 
+    task1.members = task_item["Members"] 
+    task1.comments = task_item["Comments"] 
+    task1.histor = task_item["History"]
+    return task1
+
+def info_to_obj_proj(info): #info = json / proj
+    project1.ID = info['ID']
+    project1.Leader = ['Leader']
+    project1.Title = ['Title']
+    project1.Users = ['Members']
+    project1.Field = ['Tasks']
+    return project1
+
+
+
+def sign_in (username, password):
+    #decryption
+    if os.path.exists('users/' + username + ".json"):
+        information = decrypt_user_info(username)
+        if information['password'] == password: #check password
+            if information["active"] == 'Active':
+                Account_page(username)
+                return
+            else:
+                print('Your account is inactived by admin.')
+                menu()
+        else:
+            k = input(Text('Password is incorrect.\nEnter your password or 1 to exit: ', 'red'))    
+            if k == '1': 
+                menu()
+                return
+            else:
+                sign_in(username, k)
+                return
+    else:
+        k = input("Username is not exsits. \nEnter username or 1 to exit:")
+        if k == '1': 
+            menu()
+            return
+        else:
+            sign_in(k, password)
+            return
+
 
 def create_acount ():
     User1 = User("", "", "", "Active")
@@ -358,12 +536,4 @@ def Account_page(username):
 
 
 
-
-
-
-show_projects('zark2', '2')
-
-create_project (username)
 menu()
-
-
