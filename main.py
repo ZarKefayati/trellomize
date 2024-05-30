@@ -10,7 +10,6 @@ import datetime as dt
 import uuid
 console = Console()
 
-
 class User:
     def __init__(self, Email, username, password, active):
         self.Email = Email
@@ -136,6 +135,8 @@ class project:
             print(f"this task : {m} is given to : {t}") #can use new file
 
 
+   
+
 #Tools
 def decrypt_user_info(username):
     with open("mykey.key", 'rb') as mykey: #receive key 
@@ -182,7 +183,6 @@ def info_to_obj_proj(info): #info = json / proj
     return project1
 
 
-
 def sign_in (username, password):
     #decryption
     if os.path.exists('users/' + username + ".json"):
@@ -208,6 +208,7 @@ def sign_in (username, password):
             menu()
             return
         else:
+
             sign_in(k, password)
             return
 
@@ -232,12 +233,12 @@ def create_acount ():
     with open("Users.json", 'w') as file:
         json.dump(data, file, indent=0)
 
+
     #get password
     User1.password = input('Enter your password: ')
 
 
     #adding information in another file
-    file = open('users/' + User1.username + ".json" , 'w')
     item = {"Email" : User1.Email ,
      "username" : User1.username ,
      "password" : User1.password ,
@@ -245,25 +246,15 @@ def create_acount ():
      "projects_Leader" : [],
      "projects_Memder" : []
     }
-    json.dump(item, file, indent=4)
-    file.close()
-
-    #encryption
+    
     if not os.path.exists('mykey.key'): #create key & save
         key = Fernet.generate_key()
         with open('mykey.key', 'wb') as mykey:
             mykey.write(key)
-    else:
-        with open('mykey.key', 'rb') as mykey:
-            key = mykey.read()
-    f = Fernet(key)  #encryption
-    with open('users/' + User1.username + ".json", 'rb') as original_file:
-        original = original_file.read()
-    encrypted = f.encrypt(original)
-    with open('users/' + User1.username + ".json", 'wb') as encrypted_file:
-        encrypted_file.write(encrypted)
+    encrypt_user_info(User1.username, item)
     menu()
-
+    
+    
 def create_project (username):
     #Create Project
     project1 = project(username, '', '', [username])
@@ -310,7 +301,6 @@ def create_project (username):
 
     Account_page(username)
 
-
 def edit_projet():
     pass
 
@@ -322,7 +312,7 @@ def edit_task_member (task1, ID, username):
     '6.give to members' + '\n' '7.add comment' + '\n' + '8.Show details'
      + '\n' + '9.exit'))
     k = input()
-    if k == '1':
+  if k == '1':
         task1.name = input('Enter a title: ') #Title
         edit_task_member (task1, ID, username)
         return
@@ -404,6 +394,7 @@ def edit_task_member (task1, ID, username):
     else:
         print("I didn't understand! What should I do?")
 
+        
 def task_editor(task1, ID, username):
     print(Panel('1.add comment' + '\n' + '2.Show details'))
     if k == '1':
@@ -428,11 +419,10 @@ def task_editor(task1, ID, username):
         print(task_details)
         task_editor(task1, ID, username)
         return
-    pass
 
 def create_Task (ID, username):
     task1 = Tasks()
-    
+ 
     with open ('projects/' + ID + '.json', 'r') as file:
         information = eval(file.read())
     task_item = {
@@ -454,6 +444,7 @@ def create_Task (ID, username):
 
     edit_task_member(task1, ID, username)
 
+
 def show_projects(username, c): #c = leader (1) or member (2)
     information = decrypt_user_info(username)
     if c == '2':
@@ -462,9 +453,19 @@ def show_projects(username, c): #c = leader (1) or member (2)
         lst = information['projects_Member']
     else:
         print("I didn't understand!")
-
         return
+    for i in lst:
+        with open('projects/' + i + '.json', 'r') as file:
+            print(file.read())
 
+
+    # print(information["Tasks"])
+    # if username in information['Members']:
+    #    pass 
+    # else:
+    #     print('You are not member')
+
+def show_tasks(ID):
     table = Table(title="All Tasks")
 
     table.add_column("BACKLOG", justify="right", style="cyan")
@@ -480,36 +481,43 @@ def show_projects(username, c): #c = leader (1) or member (2)
         "DONE" : [],
         "ARCHIVED" : []
     }
+    with open ('projects/' + ID + '.json', 'r') as file:
+        project = eval(file.read())
+    tasks = project['Tasks'] #dict of tasks
+    id_i = {}
+    for i , ID in zip(range(len(tasks)), tasks.keys()):
+        tasks_by_status[tasks[ID]['Status']].append(str(i+1) + '.' + tasks[ID]['Title'])
+        id_i[i] = ID
 
-    for i , Task in enumerate(lst):
-        with open ('projects/' + lst[i] + '.json', 'r') as file:
-            information = eval(file.read())
-        tasks_by_status[information['Status']].append(i + '.' + information['Title'])
-
-    All_lst = []
-    for status in tasks_by_status.value():
+    lst = [] #columns
+    for status in tasks_by_status.values():
         column = '\n'.join(status)
-
-    table.add_row(All_lst)
+        lst.append(column)
+    table.add_row(lst[0],lst[1],lst[2],lst[3],lst[4])
     console = Console()
     console.print(table)
 
-    ID = input('Choose number to show details(or 1 to exit): ')
-    if ID == '1':
+    i = input('Choose number to show details(or -1 to exit): ')
+    if i == '-1':
+        pass
         Account_page(username)
         return
-    with open ('projects/' + lst[i] + '.json', 'r') as file:
-        information = eval(file.read())
-    projet1 = info_to_obj_proj(information)
-    # print(information["Tasks"])
-    # if username in information['Members']:
-    #    pass 
-    # else:
-    #     print('You are not member')
-
+    elif i.isdigit():
+        task = tasks[id_i[i]]
+        table2 = Table(title=task['Title'])
+        Values = []
+        for j in tasks[id_i[i]].keys():
+            if j != "Members" or j != "Comments" or j !="History":
+                table2.add_column(j, style="green")
+                Values.append(task[j])
+        table2.add_row(*Values)
+        print(table2) 
+        print (f"Members: {task["Members"]}" ,
+        f"Comments: {task["Comments"]}" ,
+        f"History: {task["History"]}")
 
 def menu():
-    os.system('cls')
+    # os.system('cls')
     from rich.text import Text
     from rich.console import Console
     console = Console()
@@ -528,7 +536,6 @@ def menu():
         print("I didn't understand! (Enter 1 or 2!)\n")
         menu()
 
-
 def Account_page(username):
     panel = Panel(Text(f'WELCOME {username}! \n1. create project\n2. leader projects\n3. user projects',"bold yellow", justify="left"))
     print(panel)
@@ -539,42 +546,6 @@ def Account_page(username):
         show_projects(username, k)
 
 
-information = {
-        'ID' : '09876',
-        'Leader' : 'zark2',
-        'Title' : 'start',
-        'Members' :  ['zark3', 'zark4', 'zark5', 'zark6', 'zark7', 'zark8'],
-        'Tasks' : []
-        }
-print(information)
-with open('projects/' + '09876' + '.json', 'w') as file:
-    json.dump(information, file, indent=4)   
 
-
-
-information = {
-    'Email': 'zar.k.com@gmail.com',
-    'username': 'zark2',
-    'password': 'zahra',
-    'active': 'Active',
-    'projects_Leader': ['09876'],
-    'projects_Memder': []
-}
-encrypt_user_info('zark2', information)
-
-show_projects('zark2', '2')
-
-create_project (username)
 menu()
 
-
-information = {
-        'ID' : project1.ID,
-        'Leader' : project1.Leader,
-        'Title' : project1.Title,
-        'Members' :  project1.Users,
-        'Tasks' : project1.Fields
-        }
-print(information)
-with open('projects/' + project1.ID + '.json', 'w') as file:
-    json.dump(information, file, indent=4)   
