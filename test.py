@@ -1,5 +1,3 @@
-
-import datetime as dt
-
-now = dt.datetime.now().replace(microsecond=0)
-print(now)
+import os
+if not os.path.isdir('salam'):
+    os.makedirs('salam')

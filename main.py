@@ -161,7 +161,7 @@ def decrypt_admin_pass(username):
         with open("mykey.key", 'rb') as mykey: #receive key 
             key = mykey.read()
             f = Fernet(key)
-        with open('admin.json', 'r') as encrypted_file: #receive user information 
+        with open('Admin.json', 'r') as encrypted_file: #receive user information 
             encrypted = encrypted_file.read()
             password = f.decrypt(encrypted[username][password].encode()) #decryption
             return decrypted
@@ -189,9 +189,11 @@ def info_to_obj_proj(info): #info = dict / proj
     project1.Field = info['Tasks']
     return project1
 
-
+#sign in
 def sign_in (username, password):
     #decryption
+    if not os.path.isdir('users'):
+         os.makedirs('users')
     if os.path.exists('users/' + username + ".json"):
         information = decrypt_user_info(username)
         if information['password'] == password: #check password
@@ -221,8 +223,8 @@ def sign_in (username, password):
 
 def sign_in_admin (username, password):
     #decryption
-    if os.path.exists("admin.json") and os.path.getsize("admin.json") > 0:
-        with open ("admin.json", 'r') as file:
+    if os.path.exists("Admin.json") and os.path.getsize("Admin.json") > 0:
+        with open ("Admin.json", 'r') as file:
             information = json.load(file)
         if username in information.keys(): #check username
             password = decrypt_admin_pass(username)
@@ -248,6 +250,7 @@ def sign_in_admin (username, password):
         k = input("Something went wrong! sign up again.")
         return
 
+#create
 def create_acount ():
     User1 = User("", "", "", "Active")
 
@@ -291,7 +294,7 @@ def create_acount ():
     menu()
        
 def create_project (username):
-    #Create Project
+    #Create Project object
     project1 = project(username, '', '', [username])
     #create "ID.json"
     if not os.path.exists("ID.json"):
@@ -318,7 +321,7 @@ def create_project (username):
         else:
             print('user not found!')
             return
-        if user != username:
+        if user != username: 
             information['projects_Memder'].append(project1.ID)
         else:
             information['projects_Leader'].append(project1.ID)
@@ -334,12 +337,36 @@ def create_project (username):
         'Members' :  project1.Users,
         'Tasks' : project1.tasks_dict
         }
-    print(information)
+    #create projects folder
+    if not os.path.isdir('projects'):
+        os.makedirs('projects')
     with open('projects/' + project1.ID + '.json', 'w') as file:
         json.dump(information, file, indent=4)   
     edit_projet_leader(project1,username)
     Account_page(username)
 
+def create_Task (ID, username):
+    task1 = Tasks()
+    edit_task_member(task1, ID, username)
+    task_item = {
+        "ID" : str(task1.ID),
+        "Title" : task1.name,
+        "Description" : task1.description,
+        "Start Date" : str(task1.start_date),  
+        "End Date" : str(task1.last_date),
+        "priority" : task1.priority,
+        "Status" : task1.status,
+        "Members" : task1.members,
+        "Comments" : task1.comments,
+        "History" : task1.history
+    }
+    with open ('projects/' + ID + '.json', 'r') as file:
+        information = eval(file.read())
+    information["Tasks"][str(task1.ID)] = task_item
+    with open ('projects/' + ID + '.json', 'w') as file:
+        json.dump (information, file, indent=4)
+
+#edit project
 def edit_projet_leader(project, username): 
     print(Panel(Text(f"{project.ID} - {project.Title}\n" , 'bold magenta') + Text("1.show members \n2.show tasks & edit \n3.change info \n4.add/remove member \n5.add/remove tasks \n6.exit", 'yellow')))
     k = input()
@@ -354,23 +381,37 @@ def edit_projet_leader(project, username):
         elif n == '2':
             show_tasks(project.ID)
          
-        elif k == '3':
-            print(Text(f'ID : {project.ID} \nTitle : {project.Title}' , 'green'))
-            print('1.change ID\n2.change Title')
-            n = input()
-            if n == '1':
-                newID = input(Text('Enter new ID', 'magenta'))
-                project.tasks_dict[newID]=project.tasks_dict.pop(ID)
-                project.tasks_dict[newID][ID] = newID
-            elif n == '2':
-                newTitle = input(Text('Enter new Title', 'magenta'))
-                project.tasks_dict[ID][Title] = newTitle
-            else:
-                print(Text('invalid number!' , 'red'))
-                return
+    elif k == '3':
+        print(Text(f'ID : {project.ID} \nTitle : {project.Title}' , 'green'))
+        print('1.change ID\n2.change Title')
+        n = input()
+        if n == '1':
+            newID = input(Text('Enter new ID', 'magenta'))
+            project.tasks_dict[newID]=project.tasks_dict.pop(ID)
+            project.tasks_dict[newID][ID] = newID
+        elif n == '2':
+            newTitle = input(Text('Enter new Title', 'magenta'))
+            project.tasks_dict[ID][Title] = newTitle
+        else:
+            print(Text('invalid number!' , 'red'))
+            return
 
+def edit_project(project, username):
+    print(Panel(Text(f"{project.ID} - {project.Title}\n" , 'bold magenta') + Text("1.show members \n2.show tasks \n3.exit", 'yellow')))
+    k = input()
+    if k == '1':
+        print(project.Users)
+        edit_projet(project, username)
+        return
+    elif k == '2':
+        show_tasks(project.ID)
+        edit_projet(project, username)
+        return
+    elif k == '3':
+        Account_page(username)
+        return
 
-
+#edit task
 def edit_task_member (task1, ID, username):
     print(Text('you can change the details.' , 'blue'), 
     Panel('1.title'+ '\n' '2.description' + '\n' '3.start & end time' + '\n'
@@ -508,29 +549,8 @@ def task_editor(task1, ID, username):
         task_editor(task1, ID, username)
         return
 
-def create_Task (ID, username):
-    task1 = Tasks()
-    edit_task_member(task1, ID, username)
-    task_item = {
-        "ID" : str(task1.ID),
-        "Title" : task1.name,
-        "Description" : task1.description,
-        "Start Date" : str(task1.start_date),  
-        "End Date" : str(task1.last_date),
-        "priority" : task1.priority,
-        "Status" : task1.status,
-        "Members" : task1.members,
-        "Comments" : task1.comments,
-        "History" : task1.history
-    }
-    with open ('projects/' + ID + '.json', 'r') as file:
-        information = eval(file.read())
-    information["Tasks"][str(task1.ID)] = task_item
-    with open ('projects/' + ID + '.json', 'w') as file:
-        json.dump (information, file, indent=4)
 
-
-
+#show
 def show_projects(username, c): #c = leader (1) or member (2)
     information = decrypt_user_info(username)
     if c == '2':
@@ -591,7 +611,7 @@ def show_tasks(ID):
 
     lst = [] #columns
     for status in tasks_by_status.values():
-        column = '\n'.join(status)
+        column = '\n'.join(status) #Write the names of the projects below
         lst.append(column)
     table.add_row(*lst)
     console = Console()
@@ -599,7 +619,6 @@ def show_tasks(ID):
 
     i = input('Choose number to show details(or -1 to exit): ')
     if i == '-1':
-        pass
         Account_page(username)
         return
     elif i.isdigit() & 0 < int(i) < len(id_i) + 1 :
@@ -620,7 +639,7 @@ def show_tasks(ID):
         Account_page(username)
 
 
-
+#pages
 def menu():
     # os.system('cls')
     from rich.text import Text
@@ -657,7 +676,22 @@ def Account_page(username):
         show_projects(username, k)
 
 def Account_page_admin(username):
-    pass
+    print(Panel(Text(f'Welcome {username}!\n1.Inactive users \n2.Delete all data' , 'bold magenta')))
+    k = input()
+    if k == '1':
+        username = input('Enter a usernamt to inactive ')
+        information = decrypt_user_info(username)
+        information['active'] = "Inactive"
+    elif k == '2':
+        n = input(Text("All data will be delete; Are you sure? (1.yes)"))
+        if n == '1':
+            os.remove("Users.json")
+            os.remove("Admin.json")
+            os.remove("ID.json")
+            os.remove("ID.json")
+            os.rmdir("users")
+            os.rmdir("projects")
+
 
 menu()
 
