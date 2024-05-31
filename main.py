@@ -161,7 +161,8 @@ def decrypt_user_info(username):
             decrypted = f.decrypt(encrypted) #decryption
             information = eval(decrypted.decode()) #byte to str to dict
             return information
-    except:
+    except Exception as e:
+        error_logger.error(f"error : {e} ")
         print(Text('Sorry! something went wrong. \nUser not found!', 'red'))
         menu()
 
@@ -182,7 +183,8 @@ def decrypt_admin_pass(username, password):
             encrypted = json.load(encrypted_file)
             Truepass=f.decrypt((encrypted[username]['password']).encode()).decode()
             return Truepass == password
-    except:
+    except Exception as e:
+        error_logger.error(f"error : {e} ")
         print(Text('Sorry! something went wrong. \nUser not found!', 'red'))
         menu()
 
@@ -532,7 +534,8 @@ def edit_task_member (task1, project, username):
             task1.start_date = syear
             task1.add_history(username,f'start time changed to {task1.start_date}.')
 
-        except:
+        except Exception as e:
+            error_logger.error(f"error : {e} ")
             print (f"time data {input_year} does not match format '%Y-%m-%d %H:%M:%S' \nor invalid date.")
         finally:
             print (task1.start_date)
@@ -543,7 +546,8 @@ def edit_task_member (task1, project, username):
             task1.last_date = syear
             task1.add_history(username,f'end of time changed to {task1.last_date}.')
 
-        except:
+        except Exception as e:
+            error_logger.error(f"error : {e} ")
             print (f"time data {input_year} does not match format '%Y-%m-%d %H:%M:%S' \nor invalid date.")
         finally:
             print (f'new date: {task1.last_date}')
@@ -685,7 +689,8 @@ def show_projects(username, c): #c = leader (1) or member (2)
             show_projects(username, c)
         else:
             Account_page(username)
-    except:
+    except Exception as e:
+        error_logger.error(f"error : {e} ")
         print('Sorry! Project not found.')
         Account_page(username)
 
