@@ -9,6 +9,7 @@ from rich.table import Table
 import datetime as dt
 import uuid
 import logging
+import re
 
 error_logger = logging.getLogger('error_logger')
 error_logger.setLevel(logging.ERROR)
@@ -206,6 +207,10 @@ def info_to_obj_proj(info): #info = dict / proj
     project1 = project(info['Leader'], info['ID'], info['Title'], info['Members'], info['Tasks'])
     return project1
 
+def is_valid_email(email):
+    regex = r'^\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    return re.match(regex, email)
+
 #sign in
 def sign_in (username, password):
     #decryption
@@ -270,8 +275,11 @@ def create_acount ():
     User1 = User("", "", "", "Active")
 
     #get Email
-    User1.Email = input('Enter your Email: ')
-
+    Email = input('Enter your Email: ')
+    if is_valid_email(Email):
+        User1.Email= Email
+    else:
+        create_acount()
     #create Users.json
     if not os.path.exists("Users.json"):
         with open("Users.json", 'w') as file:
