@@ -1,6 +1,5 @@
 import os
 import json
-from cryptography.fernet import Fernet
 from rich import print
 from rich.panel import Panel
 from rich.text import Text
@@ -17,7 +16,7 @@ class User:
         self.password = password
         self.active = active
     def setUsername(self, username , file):
-        if username in file: #Duplicate username
+        if username in file: #Repetitive username
             username = input ("Username already exists. Enter username or 1 to exit:")
             if username == '1': 
                 menu()
@@ -72,7 +71,7 @@ class project:
         self.Users = Users 
     
     def setID(self, ID , file):
-        if ID in file: #Duplicate username
+        if ID in file: #Repetitive username
             ID = input ("Username already exists. Enter username or 1 to exit:")
             if ID == '1': 
                 Account_page(username)
@@ -90,7 +89,7 @@ class project:
         if username in file: #Correct Username 
             if username not in self.Users: 
                 self.Users.append(username) #save
-            else: #Duplicate Username
+            else: #Repetitive Username
                 username = input ("User is already here. \nEnter another one or 1 to exit:")
                 if username == '1': 
                     Account_page(username)
@@ -157,6 +156,19 @@ def encrypt_user_info(username, info):
         encrypted = f.encrypt((str(info)).encode())
         file.write(encrypted)
 
+def decrypt_admin_pass(username):
+    try: #file is empty or not exists
+        with open("mykey.key", 'rb') as mykey: #receive key 
+            key = mykey.read()
+            f = Fernet(key)
+        with open('admin.json', 'r') as encrypted_file: #receive user information 
+            encrypted = encrypted_file.read()
+            password = f.decrypt(encrypted[username][password].encode()) #decryption
+            return decrypted
+    except:
+        print(Text('Sorry! something went wrong. \nUser not found!', 'red'))
+        menu()
+
 def info_to_obj_task(task_item): #info = dict / task
     task = Tasks()
     task1.ID = task_item["ID"]
@@ -206,6 +218,35 @@ def sign_in (username, password):
 
             sign_in(k, password)
             return
+
+def sign_in_admin (username, password):
+    #decryption
+    if os.path.exists("admin.json") and os.path.getsize("admin.json") > 0:
+        with open ("admin.json", 'r') as file:
+            information = json.load(file)
+        if username in information.keys(): #check username
+            password = decrypt_admin_pass(username)
+            if information[username]['password'] == password: #check password
+                Account_page_admin(username)
+            else:
+                k = input(Text('Password is incorrect.\nEnter your password or 1 to exit: ', 'red'))    
+                if k == '1': 
+                    menu()
+                    return
+                else:
+                    sign_in_admin(username, k)
+                return
+        else:
+            k = input(Text('Username is incorrect.\nEnter username or 1 to exit: ', 'red'))    
+            if k == '1': 
+                menu()
+                return
+            else:
+                sign_in_admin(username, k)
+            return
+    else:
+        k = input("Something went wrong! sign up again.")
+        return
 
 def create_acount ():
     User1 = User("", "", "", "Active")
@@ -300,7 +341,7 @@ def create_project (username):
     Account_page(username)
 
 def edit_projet_leader(project, username): 
-    print(Panel(Text("1.show members \n2.show tasks & edit \n3.change info \n4.add/remove member \n5.add/remove tasks \n6.exit", 'yellow')))
+    print(Panel(Text(f"{project.ID} - {project.Title}\n" , 'bold magenta') + Text("1.show members \n2.show tasks & edit \n3.change info \n4.add/remove member \n5.add/remove tasks \n6.exit", 'yellow')))
     k = input()
     if k == '1':
         print(project.Users)
@@ -312,25 +353,7 @@ def edit_projet_leader(project, username):
             create_Task(project.ID, username)
         elif n == '2':
             show_tasks(project.ID)
-            # i_id = {}
-            # lst = []
-            # for i, ID in zip(range(len(project.tasks_dict)), project.tasks_dict.keys()):
-            #     lst.append(str(i+1) + '+' + project.tasks_dict[ID][Title])
-            #     i_id[str(i+1)] = ID
-            # print(Panel(Text('\n'.join(lst) , 'magenta')))
-            # i = input(Text('Choose number to show details(or -1 to exit): ', 'green'))
-            # if i == '-1' :
-            #     return
-            # elif i.isdigit() and 0 < int(i) < len(): 
-            #     if username in project.tasks_dict[ID]['Members']:
-            #         edit_task_member(info_to_obj_task(project.tasks_dict[ID]), ID, username)
-            #         return
-            #     else:
-            #         task_editor(info_to_obj_task(project.tasks_dict[ID]), ID, username)
-            #         return
-            # else:
-            #     print(Text('Invalid number!' , 'red'))
-
+         
         elif k == '3':
             print(Text(f'ID : {project.ID} \nTitle : {project.Title}' , 'green'))
             print('1.change ID\n2.change Title')
@@ -517,17 +540,16 @@ def show_projects(username, c): #c = leader (1) or member (2)
     else:
         print("I didn't understand!")
         return
-    table = Table(title="All Tasks")
+    table = Table(title="All Projects")
     table.add_column("row", justify="right", style="green")
     table.add_column("ID", justify="right", style="cyan")
     table.add_column("Title", justify="right", style="yellow")
-    table.add_column("Leader", style="magenta")
     id_i = {}
     # try: # error in open file
     for i , ID in enumerate(id_lst):
         with open('projects/' + ID + '.json', 'r') as file:
             info = eval(file.read())
-        table.add_row(str(i+1), ID, info["Title"], info["Leader"])
+        table.add_row(str(i+1), ID, info["Title"])
         id_i[str(i+1)] = ID
     print(table)
     i = input(Text('Choose number to show details(or -1 to exit): ', 'red'))
@@ -604,7 +626,7 @@ def menu():
     from rich.text import Text
     from rich.console import Console
     console = Console()
-    panel = Panel(Text('1. create account\n2. sign in', justify="left")) 
+    panel = Panel(Text('1. create account\n2. sign in \n3.sign in as admin', justify="left")) 
     k = console.input(panel)
     if k == '1':
         create_acount()
@@ -617,6 +639,10 @@ def menu():
         password = console.input(Text("Enter password: ","bold green"))
         sign_in(username, password)
         return
+    elif k == '3':
+        username = console.input(Text("Enter username: ","bold green"))
+        password = console.input(Text("Enter password: ","bold green"))
+        sign_in_admin(username, password)
     else:
         print("I didn't understand! (Enter 1 or 2!)\n")
         menu()
@@ -630,6 +656,8 @@ def Account_page(username):
     elif k == '2' or k == '3':
         show_projects(username, k)
 
+def Account_page_admin(username):
+    pass
 
 menu()
 

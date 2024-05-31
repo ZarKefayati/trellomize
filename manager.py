@@ -1,15 +1,37 @@
 import argparse
+import json
+import os
+from cryptography.fernet import Fernet
 
+def encrypt_user_info(info): #info is dict
+    with open("mykey.key", 'rb') as mykey: #receive key 
+        key = mykey.read()
+        f = Fernet(key)
+    with open('admin.json', 'w') as file:
+        for i in info.keys():
+            info[i]['password'] = (f.encrypt(info[i]['password'].encode())).decode()
+        json.dump(info, file, indent=4)
+        
 
 parser = argparse.ArgumentParser() 
 
-parser.add_argument('newPerson')           # positional argument
-parser.add_argument('--username')      # option that takes a value
-parser.add_argument('--password')  # on/off flag
+parser.add_argument('newPerson') 
+parser.add_argument('--username')
+parser.add_argument('--password')
 
 args = parser.parse_args()
+new_admin = args.__dict__
 
-print(args)
+if not os.path.exists("admin.json") or  os.path.getsize("admin.json") == 0:
+    with open("admin.json", 'w') as file:
+        dict1 = {}
+        json.dump(dict1, file, indent=4)
 
-# args = parser.parse_args()
-# print(args.filename, args.count, args.verbose)
+with open('admin.json', 'r') as file:
+    data = json.load(file)
+    if (new_admin['username']) in data: #repetitive admin
+        print('You are already admin.')
+    else:
+        data[new_admin['username']] = (new_admin)
+
+encrypt_user_info(data)
