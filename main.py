@@ -344,9 +344,10 @@ def create_project (username):
     edit_projet_leader(project1,username)
     Account_page(username)
 
-def create_Task (ID, username):
+def create_Task (project, username):
+    ID = project.ID
     task1 = Tasks()
-    edit_task_member(task1, ID, username)
+    edit_task_member(task1, project, username)
     task_item = {
         "ID" : str(task1.ID),
         "Title" : task1.name,
@@ -359,6 +360,7 @@ def create_Task (ID, username):
         "Comments" : task1.comments,
         "History" : task1.history
     }
+    project.tasks_dict[str(task1.ID)] = task_item
     with open ('projects/' + ID + '.json', 'r') as file:
         information = eval(file.read())
     information["Tasks"][str(task1.ID)] = task_item
@@ -389,7 +391,7 @@ def edit_projet_leader(project, username):
     elif k == '2':
         n = input('1.New Task\n2.show tasks\n3.remove task\n')
         if n == '1':
-            create_Task(project.ID, username)
+            create_Task(project, username)
         elif n == '2':
             show_tasks(project.ID)
         elif n == '3':
@@ -415,7 +417,7 @@ def edit_projet_leader(project, username):
             with open('projects/' + project.ID + '.json' , 'r') as file:
                 data = json.load(file)
             with open('projects/' + newID + '.json' , 'w')as file:
-                data[ID] = newID
+                data[project.ID] = newID
                 json.dump(data , file , indent = 4)
             project.ID = newID
         elif n == '2':
@@ -463,7 +465,8 @@ def edit_project(project, username):
         return
 
 #edit task
-def edit_task_member (task1, ID, username):
+def edit_task_member (task1, project, username):
+    ID = project.ID
     #save project
     task_item = {
         "ID" : str(task1.ID),
@@ -477,12 +480,7 @@ def edit_task_member (task1, ID, username):
         "Comments" : task1.comments,
         "History" : task1.history
     }
-    with open ('projects/' + ID + '.json', 'r') as file:
-        information = eval(file.read())
-    information["Tasks"][str(task1.ID)] = task_item
-    with open ('projects/' + ID + '.json', 'w') as file:
-        json.dump (information, file, indent=4)
-
+    project.tasks_dict[str(task1.ID)] = task_item
     print(Text('you can change the details.' , 'blue'), 
     Panel('1.title'+ '\n' '2.description' + '\n' '3.start & end time' + '\n'
     '4.change priority (CRITICAL, HIGH, MEDIUM, LOW(default)' + '\n'
@@ -494,13 +492,13 @@ def edit_task_member (task1, ID, username):
         print (task1.name)
         task1.name = input('Enter a title: ') #Title
         task1.add_history(username,f'Title changed to {task1.name}.')
-        edit_task_member (task1, ID, username)
+        edit_task_member (task1, project, username)
         return
 
     elif k == '2':
         print (task1.description)
         task1.description = input('description of task (optional): ')
-        edit_task_member (task1, ID, username)
+        edit_task_member (task1, project, username)
         return
 
     elif k == '3':
@@ -522,7 +520,7 @@ def edit_task_member (task1, ID, username):
             print (f"time data {input_year} does not match format '%Y-%m-%d %H:%M:%S' \nor invalid date.")
         finally:
             print (f'new date: {task1.last_date}')
-        edit_task_member (task1, ID, username)
+        edit_task_member (task1, project, username)
         return
 
     elif k == '4':
@@ -532,7 +530,7 @@ def edit_task_member (task1, ID, username):
             task1.priority = task1.degr[int(n)-1]
         else:
             print('invalid number')
-        edit_task_member (task1, ID, username)
+        edit_task_member (task1, project, username)
         return
 
     elif k == '5':
@@ -542,7 +540,7 @@ def edit_task_member (task1, ID, username):
             task1.status = task1.position[int(n)-1]
         else:
             print('invalid number')
-        edit_task_member (task1, ID, username)
+        edit_task_member (task1, project, username)
         return
 
     elif k == '6':
@@ -563,14 +561,14 @@ def edit_task_member (task1, ID, username):
         else:
             print("you ara not leader in the project.",
              "you can't add members.")
-        edit_task_member (task1, ID, username)
+        edit_task_member (task1, project, username)
         return
 
     elif k == '7':
         print(task1.add_comment)
         comment = input('Enter your comment: ')
         task1.add_comment(username, comment)
-        edit_task_member (task1, ID, username)
+        edit_task_member (task1, project, username)
         return
     
     elif k == '8':
@@ -587,7 +585,7 @@ def edit_task_member (task1, ID, username):
             "History" : task1.history
         }
         print(task_item)
-        edit_task_member (task1, ID, username)
+        edit_task_member (task1, project, username)
         return
     elif k == '9':
         return
@@ -636,25 +634,25 @@ def show_projects(username, c): #c = leader (1) or member (2)
     table.add_column("ID", justify="right", style="cyan")
     table.add_column("Title", justify="right", style="yellow")
     id_i = {}
-    # try: # error in open file
-    for i , ID in enumerate(id_lst):
-        with open('projects/' + ID + '.json', 'r') as file:
-            info = eval(file.read())
-        table.add_row(str(i+1), ID, info["Title"])
-        id_i[str(i+1)] = ID
-    print(table)
-    i = input(Text('Choose number to show details(or -1 to exit): ', 'red'))
-    if i.isdigit() and 0 < int(i) < (len(id_i) + 1) :
-        with open ('projects/' + id_i[i] + '.json') as file:
-            info = eval(file.read())
-        project = info_to_obj_proj(info)
-        edit_projet_leader(project, username)
-        show_projects(username, c)
-    else:
+    try: # error in open file
+        for i , ID in enumerate(id_lst):
+            with open('projects/' + ID + '.json', 'r') as file:
+                info = json.load(file)
+            table.add_row(str(i+1), ID, info["Title"])
+            id_i[str(i+1)] = ID
+        print(table)
+        i = input(Text('Choose number to show details(or -1 to exit): ', 'red'))
+        if i.isdigit() and 0 < int(i) < (len(id_i) + 1) :
+            with open ('projects/' + id_i[i] + '.json') as file:
+                info = eval(file.read())
+            project = info_to_obj_proj(info)
+            edit_projet_leader(project, username)
+            show_projects(username, c)
+        else:
+            Account_page(username)
+    except:
+        print('Sorry! Project not found.')
         Account_page(username)
-    # except:
-    #     print('Sorry! Project not found.')
-    #     Account_page(username)
 
 def show_tasks(ID):
     table = Table(title="All Tasks")
