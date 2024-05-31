@@ -32,11 +32,11 @@ class User:
             self.username = username
 
 class Tasks:
-    def __init__(self ,name="" ,description="", priority="LOW" ,status="BACKLOG", hour = 24, day = 0, members = []): 
+    def __init__(self ,name="" ,description="", priority="LOW" ,status="BACKLOG", hour = 24, day = 0, members = [], history = [], comments = [] ): 
         self.ID = uuid.uuid4()
         self.name=name
         self.description=description
-        self.start_date = dt.datetime.now()
+        self.start_date = dt.datetime.now().replace(microsecond=0)
         self.last_date = self.start_date + dt.timedelta(hours=hour, days=day)
         self.degr=["CRITICAL" , "HIGH" , "MEDIUM" , "LOW"]
         if priority in self.degr:
@@ -49,17 +49,17 @@ class Tasks:
         else:
             print("the status is not able")
 
-        self.history = [] 
-        self.comments = []
+        self.history = history
+        self.comments = comments
         self.members = members
     def add_history(self, user, change_assiAssignees, change_priority, change_status):
         self.history.append({'user':user,'change_in_assiAssignees':change_assiAssignees, 'change_in_priority':change_priority,'change_in_status':change_status, 'timestamp':dt.now()})
 
     def add_comment(self, username, comment):
-        self.comments.append({'username':username,'comment':comment,'start_date':dt.datetime.now()})
+        self.comments.append({'username':username,'comment':comment,'start_date':str(dt.datetime.now())})
     
     def __repr__(self):
-        return (f"Task(id={self.uniq_id}, title={self.task_name}, start_date={self.start_date}"+
+        return (f"Task(id={self.ID}, title={self.name}, start_date={self.start_date}"+
                 f"end_date={self.last_date}, "+
                 f"history={self.history}, comments={self.comments}")
 
@@ -239,7 +239,7 @@ def create_acount ():
      "password" : User1.password ,
      "active" : User1.active,
      "projects_Leader" : [],
-     "projects_Memder" : []
+     "projects_Member" : []
     }
     
     if not os.path.exists('mykey.key'): #create key & save
@@ -307,28 +307,29 @@ def edit_projet_leader(project, username):
         edit_projet_leader(project, username)
         return
     elif k == '2':
-        n = input('1.New Task\n2.show tasks')
+        n = input('1.New Task\n2.show tasks\n')
         if n == '1':
             create_Task(project.ID, username)
         elif n == '2':
-            i_id = {}
-            lst = []
-            for i, ID in zip(range(len(project.tasks_dict)), project.tasks_dict.keys()):
-                lst.append(str(i+1) + '+' + project.tasks_dict[ID][Title])
-                i_id[str(i+1)] = ID
-            print(Panel(Text('\n'.join(lst) , 'magenta')))
-            i = input(Text('Choose number to show details(or -1 to exit): ', 'green'))
-            if i == '-1' :
-                return
-            elif i.isdigit() and 0 < int(i) < len(): 
-                if username in project.tasks_dict[ID]['Members']:
-                    edit_task_member(info_to_obj_task(project.tasks_dict[ID]), ID, username)
-                    return
-                else:
-                    task_editor(info_to_obj_task(project.tasks_dict[ID]), ID, username)
-                    return
-            else:
-                print(Text('Invalid number!' , 'red'))
+            show_tasks(project.ID)
+            # i_id = {}
+            # lst = []
+            # for i, ID in zip(range(len(project.tasks_dict)), project.tasks_dict.keys()):
+            #     lst.append(str(i+1) + '+' + project.tasks_dict[ID][Title])
+            #     i_id[str(i+1)] = ID
+            # print(Panel(Text('\n'.join(lst) , 'magenta')))
+            # i = input(Text('Choose number to show details(or -1 to exit): ', 'green'))
+            # if i == '-1' :
+            #     return
+            # elif i.isdigit() and 0 < int(i) < len(): 
+            #     if username in project.tasks_dict[ID]['Members']:
+            #         edit_task_member(info_to_obj_task(project.tasks_dict[ID]), ID, username)
+            #         return
+            #     else:
+            #         task_editor(info_to_obj_task(project.tasks_dict[ID]), ID, username)
+            #         return
+            # else:
+            #     print(Text('Invalid number!' , 'red'))
 
         elif k == '3':
             print(Text(f'ID : {project.ID} \nTitle : {project.Title}' , 'green'))
@@ -346,6 +347,7 @@ def edit_projet_leader(project, username):
                 return
 
 
+
 def edit_task_member (task1, ID, username):
     print(Text('you can change the details.' , 'blue'), 
     Panel('1.title'+ '\n' '2.description' + '\n' '3.start & end time' + '\n'
@@ -355,11 +357,13 @@ def edit_task_member (task1, ID, username):
      + '\n' + '9.exit'))
     k = input()
     if k == '1':
+        print (task1.name)
         task1.name = input('Enter a title: ') #Title
         edit_task_member (task1, ID, username)
         return
 
     elif k == '2':
+        print (task1.description)
         task1.description = input('description of task (optional): ')
         edit_task_member (task1, ID, username)
         return
@@ -367,26 +371,27 @@ def edit_task_member (task1, ID, username):
     elif k == '3':
         #start
         try: #does not match format
-            input_year = input('Enter your Date to start: (e.g. 2024.01.01 15:30:00)')
-            syear = dt.datetime.strptime(input_year, "%Y.%m.%d %H:%M:%S")
-            task1.start_date_date = syear
+            input_year = input(f'Enter your Date to start: (e.g. {task1.start_date})')
+            syear = dt.datetime.strptime(input_year, "%Y-%m-%d %H:%M:%S")
+            task1.start_date = syear
         except:
-            print (f"time data {input_year} does not match format '%Y.%m.%d %H:%M:%S'")
+            print (f"time data {input_year} does not match format '%Y-%m-%d %H:%M:%S' \nor invalid date.")
         finally:
             print (task1.start_date)
         #end
         try: #does not match format
-            input_year = input('Enter your Date to end: (e.g. 2024.01.01 15:30:00)')
-            syear = dt.datetime.strptime(input_year, "%Y.%m.%d %H:%M:%S")
+            input_year = input(f'Enter your Date to end: (e.g. { task1.last_date })')
+            syear = dt.datetime.strptime(input_year, "%Y-%m-%d %H:%M:%S")
             task1.last_date = syear
         except:
-            print (f"time data {input_year} does not match format '%Y.%m.%d %H:%M:%S'")
+            print (f"time data {input_year} does not match format '%Y.%m.%d %H:%M:%S' \nor invalid date.")
         finally:
-            print (task1.last_date)
+            print (f'new date: {task1.last_date}')
         edit_task_member (task1, ID, username)
         return
 
     elif k == '4':
+        print(task1.priority)
         n = input('1.CRITICAL\n2.HIGH\n3.MEDIUM\n4.LOW(default)\n')
         if n.isdigit() and 0 < int(n) < 5:
             task1.priority = task1.degr[int(n)-1]
@@ -396,6 +401,7 @@ def edit_task_member (task1, ID, username):
         return
 
     elif k == '5':
+        print(task1.status)
         n = input('1.BACKLOG(default) \n2.TODO \n3.DOING \n4.DONE \n5.ARCHIVED\n')
         if n.isdigit() and 0 < int(n) < 6:
             task1.status = task1.position[int(n)-1]
@@ -405,12 +411,18 @@ def edit_task_member (task1, ID, username):
         return
 
     elif k == '6':
+        
         with open ('projects/' + ID + '.json') as file:
             information = eval(file.read())
+        print(f"project members: {information['Members']}")
+        print(f'task members: {task1.members}')
         if username == information['Leader']:
             name = input('Enter member: ')
             if name in information['Members']:
-                task1.members.append(name)
+                if name not in task1.members:
+                    task1.members.append(name)
+                else:
+                    pass
             else:
                 print('user is not member of project.')
         else:
@@ -420,15 +432,26 @@ def edit_task_member (task1, ID, username):
         return
 
     elif k == '7':
+        print(task1.add_comment)
         comment = input('Enter your comment: ')
         task1.add_comment(username, comment)
         edit_task_member (task1, ID, username)
         return
     
     elif k == '8':
-        with open ('projects/' + ID + '.json', 'r') as file:
-            information = eval(file.read())
-        print(information["Tasks"])
+        task_item = {
+            "ID" : str(task1.ID),
+            "Title" : task1.name,
+            "Description" : task1.description,
+            "Start Date" : str(task1.start_date),  
+            "End Date" : str(task1.last_date),
+            "priority" : task1.priority,
+            "Status" : task1.status,
+            "Members" : task1.members,
+            "Comments" : task1.comments,
+            "History" : task1.history
+        }
+        print(task_item)
         edit_task_member (task1, ID, username)
         return
     elif k == '9':
@@ -466,11 +489,11 @@ def create_Task (ID, username):
     task1 = Tasks()
     edit_task_member(task1, ID, username)
     task_item = {
-        "ID" : task1.ID,
+        "ID" : str(task1.ID),
         "Title" : task1.name,
         "Description" : task1.description,
-        "Start Date" : task1.start_date,  
-        "End Date" : task1.last_date,
+        "Start Date" : str(task1.start_date),  
+        "End Date" : str(task1.last_date),
         "priority" : task1.priority,
         "Status" : task1.status,
         "Members" : task1.members,
@@ -479,9 +502,11 @@ def create_Task (ID, username):
     }
     with open ('projects/' + ID + '.json', 'r') as file:
         information = eval(file.read())
-    information["Tasks"][task1.ID] = task_item
+    information["Tasks"][str(task1.ID)] = task_item
     with open ('projects/' + ID + '.json', 'w') as file:
         json.dump (information, file, indent=4)
+
+
 
 def show_projects(username, c): #c = leader (1) or member (2)
     information = decrypt_user_info(username)
@@ -506,20 +531,17 @@ def show_projects(username, c): #c = leader (1) or member (2)
         id_i[str(i+1)] = ID
     print(table)
     i = input(Text('Choose number to show details(or -1 to exit): ', 'red'))
-    if i == '-1':
-        Account_page(username)
-    elif i.isdigit() and 0 < int(i) < (len(id_i) + 1) :
+    if i.isdigit() and 0 < int(i) < (len(id_i) + 1) :
         with open ('projects/' + id_i[i] + '.json') as file:
             info = eval(file.read())
         project = info_to_obj_proj(info)
         edit_projet_leader(project, username)
         show_projects(username, c)
+    else:
+        Account_page(username)
     # except:
     #     print('Sorry! Project not found.')
     #     Account_page(username)
-
-
-
 
 def show_tasks(ID):
     table = Table(title="All Tasks")
@@ -543,7 +565,7 @@ def show_tasks(ID):
     id_i = {}
     for i , ID in zip(range(len(tasks)), tasks.keys()):
         tasks_by_status[tasks[ID]['Status']].append(str(i+1) + '.' + tasks[ID]['Title'])
-        id_i[i] = ID
+        id_i[str(i+1)] = ID
 
     lst = [] #columns
     for status in tasks_by_status.values():
@@ -563,7 +585,7 @@ def show_tasks(ID):
         table2 = Table(title=task['Title'])
         Values = []
         for j in tasks[id_i[i]].keys():
-            if j != "Members" or j != "Comments" or j !="History":
+            if j != "Members" and j != "Comments" and j !="History":
                 table2.add_column(j, style="green")
                 Values.append(task[j])
         table2.add_row(*Values)
@@ -574,6 +596,8 @@ def show_tasks(ID):
     else:
         print('incorrect number!')
         Account_page(username)
+
+
 
 def menu():
     # os.system('cls')
