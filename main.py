@@ -8,6 +8,22 @@ from rich.console import Console
 from rich.table import Table
 import datetime as dt
 import uuid
+import logging
+
+error_logger = logging.getLogger('error_logger')
+error_logger.setLevel(logging.ERROR)
+error_file_handler = logging.FileHandler('errors.log')
+error_formatter = logging.Formatter('%(asctime)s - %(message)s')
+error_file_handler.setFormatter(error_formatter)
+error_logger.addHandler(error_file_handler)
+
+info_logger = logging.getLogger('info_logger')
+info_logger.setLevel(logging.INFO)
+info_file_handler = logging.FileHandler('user_actions.log')
+info_formatter = logging.Formatter('%(asctime)s - %(message)s')
+info_file_handler.setFormatter(info_formatter)
+info_logger.addHandler(info_file_handler)
+
 console = Console()
 
 class User:
@@ -64,11 +80,11 @@ class Tasks:
                 f"history={self.history}, comments={self.comments}")
 
 class project:
-    def __init__(self, Leader, ID, Title, Users = []): 
+    def __init__(self, Leader, ID, Title, Users = [], tasks_dict= {}): 
         self.Leader = Leader
         self.ID = ID
         self.Title = Title
-        self.tasks_dict = {}
+        self.tasks_dict = tasks_dict
         self.Users = Users 
     
     def setID(self, ID , file):
@@ -185,9 +201,7 @@ def info_to_obj_task(task_item): #info = dict / task
     return task1
 
 def info_to_obj_proj(info): #info = dict / proj
-    project1 = project(info['Leader'], info['ID'], info['Title'], info['Members'])
-    project1.Users = info['Members']
-    project1.Field = info['Tasks']
+    project1 = project(info['Leader'], info['ID'], info['Title'], info['Members'], info['Tasks'])
     return project1
 
 #sign in
@@ -197,6 +211,7 @@ def sign_in (username, password):
         information = decrypt_user_info(username)
         if information['password'] == password: #check password
             if information["active"] == 'Active':
+                info_logger.info(f"user {username} signed in.")
                 Account_page(username)
                 return
             else:
@@ -290,6 +305,7 @@ def create_acount ():
         with open('mykey.key', 'wb') as mykey:
             mykey.write(key)
     encrypt_user_info(User1.username, item)
+    info_logger.info(f"user {username} created account.")
     menu()
        
 def create_project (username):
@@ -339,7 +355,8 @@ def create_project (username):
     if not os.path.isdir('projects'):
         os.makedirs('projects')
     with open('projects/' + project1.ID + '.json', 'w') as file:
-        json.dump(information, file, indent=4)   
+        json.dump(information, file, indent=4) 
+    info_logger.info(f"user {username} created project {project1.ID}.")
     edit_projet_leader(project1,username)
     Account_page(username)
 
@@ -365,6 +382,7 @@ def create_Task (project, username):
     information["Tasks"][str(task1.ID)] = task_item
     with open ('projects/' + ID + '.json', 'w') as file:
         json.dump (information, file, indent=4)
+    info_logger.info(f"user {username} created task {task1.name} in project {project1.ID}.")
 
 #edit project
 def edit_projet_leader(project, username): 
@@ -458,7 +476,7 @@ def edit_project(project, username):
     k = input()
     if k == '1':
         print(project.Users)
-        edit_projet(project, username)
+        edit_project(project, username)
         return
     elif k == '2':
         show_tasks(project.ID)
@@ -660,7 +678,10 @@ def show_projects(username, c): #c = leader (1) or member (2)
             with open ('projects/' + id_i[i] + '.json') as file:
                 info = eval(file.read())
             project = info_to_obj_proj(info)
-            edit_projet_leader(project, username)
+            if username == project.Leader:
+                edit_projet_leader(project, username)
+            else:
+                edit_project(project, username)
             show_projects(username, c)
         else:
             Account_page(username)
