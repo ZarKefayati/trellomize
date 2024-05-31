@@ -10,6 +10,8 @@ import datetime as dt
 import uuid
 import logging
 import re
+import unittest
+
 
 error_logger = logging.getLogger('error_logger')
 error_logger.setLevel(logging.ERROR)
