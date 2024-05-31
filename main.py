@@ -193,8 +193,6 @@ def info_to_obj_proj(info): #info = dict / proj
 #sign in
 def sign_in (username, password):
     #decryption
-    if not os.path.isdir('users'):
-         os.makedirs('users')
     if os.path.exists('users/' + username + ".json"):
         information = decrypt_user_info(username)
         if information['password'] == password: #check password
@@ -285,7 +283,8 @@ def create_acount ():
      "projects_Leader" : [],
      "projects_Member" : []
     }
-    
+    if not os.path.isdir('users'):
+         os.makedirs('users')
     if not os.path.exists('mykey.key'): #create key & save
         key = Fernet.generate_key()
         with open('mykey.key', 'wb') as mykey:
@@ -295,7 +294,7 @@ def create_acount ():
        
 def create_project (username):
     #Create Project object
-    project1 = project(username, '', '', [username])
+    project1 = project(username, '', '', [])
     #create "ID.json"
     if not os.path.exists("ID.json"):
         with open("ID.json", 'w') as file:
@@ -322,12 +321,12 @@ def create_project (username):
             print('user not found!')
             return
         if user != username: 
-            information['projects_Memder'].append(project1.ID)
+            information['projects_Member'].append(project1.ID)
         else:
             information['projects_Leader'].append(project1.ID)
         print(information)
         encrypt_user_info(user, information)
-        user = input('Invite users to this project.\nEnter username or 1 to end: ') #Add Users
+        user = input(Text('Invite users to this project.\nEnter username or 1 to end: ', 'magenta')) #Add Users
     
     # Save Project
     information = {
@@ -413,11 +412,15 @@ def edit_projet_leader(project, username):
         n = input()
         if n == '1':
             newID = input(Text('Enter new ID', 'magenta'))
-            project.tasks_dict[newID]=project.tasks_dict.pop(ID)
-            project.tasks_dict[newID][ID] = newID
+            with open('projects/' + project.ID + '.json' , 'r') as file:
+                data = json.load(file)
+            with open('projects/' + newID + '.json' , 'w')as file:
+                data[ID] = newID
+                json.dump(data , file , indent = 4)
+            project.ID = newID
         elif n == '2':
             newTitle = input(Text('Enter new Title', 'magenta'))
-            project.tasks_dict[ID][Title] = newTitle
+            project.Title = newTitle
         else:
             print(Text('invalid number!' , 'red'))
             return
@@ -461,6 +464,25 @@ def edit_project(project, username):
 
 #edit task
 def edit_task_member (task1, ID, username):
+    #save project
+    task_item = {
+        "ID" : str(task1.ID),
+        "Title" : task1.name,
+        "Description" : task1.description,
+        "Start Date" : str(task1.start_date),  
+        "End Date" : str(task1.last_date),
+        "priority" : task1.priority,
+        "Status" : task1.status,
+        "Members" : task1.members,
+        "Comments" : task1.comments,
+        "History" : task1.history
+    }
+    with open ('projects/' + ID + '.json', 'r') as file:
+        information = eval(file.read())
+    information["Tasks"][str(task1.ID)] = task_item
+    with open ('projects/' + ID + '.json', 'w') as file:
+        json.dump (information, file, indent=4)
+
     print(Text('you can change the details.' , 'blue'), 
     Panel('1.title'+ '\n' '2.description' + '\n' '3.start & end time' + '\n'
     '4.change priority (CRITICAL, HIGH, MEDIUM, LOW(default)' + '\n'
@@ -497,7 +519,7 @@ def edit_task_member (task1, ID, username):
             syear = dt.datetime.strptime(input_year, "%Y-%m-%d %H:%M:%S")
             task1.last_date = syear
         except:
-            print (f"time data {input_year} does not match format '%Y.%m.%d %H:%M:%S' \nor invalid date.")
+            print (f"time data {input_year} does not match format '%Y-%m-%d %H:%M:%S' \nor invalid date.")
         finally:
             print (f'new date: {task1.last_date}')
         edit_task_member (task1, ID, username)
@@ -684,7 +706,7 @@ def show_tasks(ID):
         f"History: {task["History"]}")
     else:
         print('incorrect number!')
-        Account_page(username)
+        menu()
 
 
 #pages
@@ -720,6 +742,7 @@ def Account_page(username):
     k = input()
     if k == '1':
         create_project(username)
+        return
     elif k == '2' or k == '3':
         show_projects(username, k)
 
