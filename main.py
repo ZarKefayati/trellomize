@@ -43,8 +43,8 @@ class Tasks:
             self.priority = priority
         else:
             print("the priority is not able")
-        self.position = ["BACKLOG" , "TODO" , "DOING" , "DONE" , "ARCHIVED"]
-        if status in self.position:
+        self.statuses = ["BACKLOG" , "TODO" , "DOING" , "DONE" , "ARCHIVED"]
+        if status in self.statuses:
             self.status = status 
         else:
             print("the status is not able")
@@ -324,7 +324,6 @@ def create_project (username):
             information['projects_Member'].append(project1.ID)
         else:
             information['projects_Leader'].append(project1.ID)
-        print(information)
         encrypt_user_info(user, information)
         user = input(Text('Invite users to this project.\nEnter username or 1 to end: ', 'magenta')) #Add Users
     
@@ -413,7 +412,12 @@ def edit_projet_leader(project, username):
         print('1.change ID\n2.change Title\n')
         n = input()
         if n == '1':
-            newID = input(Text('Enter new ID', 'magenta'))
+            newID = input(Text('Enter new ID: ', 'bold magenta'))
+            with open("ID.json ", 'r') as file:
+                if newID in file.read():
+                    print('repetitive ID')
+                    edit_projet_leader(project, username)
+                    return
             with open('projects/' + project.ID + '.json' , 'r') as file:
                 data = json.load(file)
             with open('projects/' + newID + '.json' , 'w')as file:
@@ -440,7 +444,7 @@ def edit_projet_leader(project, username):
             user = input('Enter username: ')
             project.Users.remove(user)
         else:
-            pass
+            print("invalid number")
 
         edit_projet_leader(project, username)
         return
@@ -498,6 +502,7 @@ def edit_task_member (task1, project, username):
     elif k == '2':
         print (task1.description)
         task1.description = input('description of task (optional): ')
+        task1.add_history(username,f'description changed to {task1.description}.')
         edit_task_member (task1, project, username)
         return
 
@@ -507,6 +512,8 @@ def edit_task_member (task1, project, username):
             input_year = input(f'Enter your Date to start: (e.g. {task1.start_date})')
             syear = dt.datetime.strptime(input_year, "%Y-%m-%d %H:%M:%S")
             task1.start_date = syear
+            task1.add_history(username,f'start time changed to {task1.start_date}.')
+
         except:
             print (f"time data {input_year} does not match format '%Y-%m-%d %H:%M:%S' \nor invalid date.")
         finally:
@@ -516,6 +523,8 @@ def edit_task_member (task1, project, username):
             input_year = input(f'Enter your Date to end: (e.g. { task1.last_date })')
             syear = dt.datetime.strptime(input_year, "%Y-%m-%d %H:%M:%S")
             task1.last_date = syear
+            task1.add_history(username,f'end of time changed to {task1.last_date}.')
+
         except:
             print (f"time data {input_year} does not match format '%Y-%m-%d %H:%M:%S' \nor invalid date.")
         finally:
@@ -528,6 +537,7 @@ def edit_task_member (task1, project, username):
         n = input('1.CRITICAL\n2.HIGH\n3.MEDIUM\n4.LOW(default)\n')
         if n.isdigit() and 0 < int(n) < 5:
             task1.priority = task1.degr[int(n)-1]
+            task1.add_history(username,f'priority changed to {task1.priority}.')
         else:
             print('invalid number')
         edit_task_member (task1, project, username)
@@ -537,7 +547,8 @@ def edit_task_member (task1, project, username):
         print(task1.status)
         n = input('1.BACKLOG(default) \n2.TODO \n3.DOING \n4.DONE \n5.ARCHIVED\n')
         if n.isdigit() and 0 < int(n) < 6:
-            task1.status = task1.position[int(n)-1]
+            task1.status = task1.statuses[int(n)-1]
+            task1.add_history(username,f'priority changed to {task1.priority}.')
         else:
             print('invalid number')
         edit_task_member (task1, project, username)
@@ -554,8 +565,10 @@ def edit_task_member (task1, project, username):
             if name in information['Members']:
                 if name not in task1.members:
                     task1.members.append(name)
+                    task1.add_history(username,f'{name} added to project.')
+
                 else:
-                    pass
+                    print(f'{name} is already here.')
             else:
                 print('user is not member of project.')
         else:
@@ -568,6 +581,7 @@ def edit_task_member (task1, project, username):
         print(task1.add_comment)
         comment = input('Enter your comment: ')
         task1.add_comment(username, comment)
+        task1.add_history(username,f'new comment: {comment}.')
         edit_task_member (task1, project, username)
         return
     
@@ -735,7 +749,7 @@ def menu():
         menu()
 
 def Account_page(username):
-    panel = Panel(Text(f'WELCOME {username}! \n1. create project\n2. leader projects\n3. user projects',"bold yellow", justify="left"))
+    panel = Panel(Text(f'WELCOME {username}! \n1. create project\n2. leader projects\n3. user projects\n4. sign out',"bold yellow", justify="left"))
     print(panel)
     k = input()
     if k == '1':
@@ -743,6 +757,10 @@ def Account_page(username):
         return
     elif k == '2' or k == '3':
         show_projects(username, k)
+        return
+    elif k == '4':
+        menu()
+        return
 
 def Account_page_admin(username):
     print(Panel(Text(f'Welcome {username}!\n1.Inactive users \n2.Delete all data' , 'bold magenta')))
