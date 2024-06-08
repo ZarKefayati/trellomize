@@ -11,18 +11,20 @@ import uuid
 import logging
 import re
 import unittest
+import shutil
+
 
 
 error_logger = logging.getLogger('error_logger')
 error_logger.setLevel(logging.ERROR)
-error_file_handler = logging.FileHandler('errors.log')
+error_file_handler = logging.FileHandler('data/errors.log')
 error_formatter = logging.Formatter('%(asctime)s - %(message)s')
 error_file_handler.setFormatter(error_formatter)
 error_logger.addHandler(error_file_handler)
 
 info_logger = logging.getLogger('info_logger')
 info_logger.setLevel(logging.INFO)
-info_file_handler = logging.FileHandler('user_actions.log')
+info_file_handler = logging.FileHandler('data/user_actions.log')
 info_formatter = logging.Formatter('%(asctime)s - %(message)s')
 info_file_handler.setFormatter(info_formatter)
 info_logger.addHandler(info_file_handler)
@@ -56,7 +58,7 @@ class Tasks:
         self.name=name
         self.description=description
         self.start_date = dt.datetime.now().replace(microsecond=0)
-        self.last_date = self.start_date + dt.timedelta(hours=hour, days=day)
+        self.last_date=self.start_date + dt.datetime(hour=24 , day=0)
         self.degr=["CRITICAL" , "HIGH" , "MEDIUM" , "LOW"]
         if priority in self.degr:
             self.priority = priority
@@ -156,7 +158,7 @@ class project:
 #Tools
 def decrypt_user_info(username):
     try: #file is empty or not exists
-        with open("mykey.key", 'rb') as mykey: #receive key 
+        with open("data/mykey.key", 'rb') as mykey: #receive key 
             key = mykey.read()
             f = Fernet(key)
         with open('users/' + username + '.json', 'rb') as encrypted_file: #receive user information 
@@ -170,7 +172,7 @@ def decrypt_user_info(username):
         menu()
 
 def encrypt_user_info(username, info):
-    with open("mykey.key", 'rb') as mykey: #receive key 
+    with open("data/mykey.key", 'rb') as mykey: #receive key 
         key = mykey.read()
         f = Fernet(key)
     with open('users/' + username + '.json', 'wb') as file:
@@ -179,16 +181,16 @@ def encrypt_user_info(username, info):
 
 def decrypt_admin_pass(username, password):
     try: #file is empty or not exists
-        with open("mykey.key", 'rb') as mykey: #receive key 
+        with open("data/mykey.key", 'rb') as mykey: #receive key 
             key = mykey.read()
             f = Fernet(key)
-        with open('Admin.json', 'r') as encrypted_file: #receive user information 
+        with open('data/Admin.json', 'r') as encrypted_file: #receive user information 
             encrypted = json.load(encrypted_file)
             Truepass=f.decrypt((encrypted[username]['password']).encode()).decode()
             return Truepass == password
     except Exception as e:
         error_logger.error(f"error : {e} ")
-        print(Text('Sorry! something went wrong. \nUser not found!', 'red'))
+        print(Text('Sorry! something went wrong. \nAdmin not found!', 'red'))
         menu()
 
 def info_to_obj_task(task_item): #info = dict / task
@@ -246,8 +248,8 @@ def sign_in (username, password):
 
 def sign_in_admin (username, password):
     #decryption
-    if os.path.exists("Admin.json") and os.path.getsize("Admin.json") > 0:
-        with open ("Admin.json", 'r') as file:
+    if os.path.exists("data/Admin.json") and os.path.getsize("data/Admin.json") > 0:
+        with open ("data/Admin.json", 'r') as file:
             information = json.load(file)
         if username in information.keys(): #check username
             if decrypt_admin_pass(username, password): #check password
@@ -281,20 +283,24 @@ def create_acount ():
     if is_valid_email(Email):
         User1.Email= Email
     else:
+        print("Incorrect Email\n")
         create_acount()
-    #create Users.json
-    if not os.path.exists("Users.json"):
-        with open("Users.json", 'w') as file:
+    #create Users.json & data folder
+    if not os.path.isdir('data'):
+        os.makedirs('data')
+    if not os.path.exists("data/Users.json"):
+        with open("data/Users.json", 'w') as file:
             lst = []
-            json.dump(lst,file, indent=0)
+            json.dump(lst, file, indent = 0)
+
 
     #get username
     username = input('Enter a username: ')
-    with open("Users.json", 'r') as file:    
+    with open("data/Users.json", 'r') as file:    
         data = json.load(file)
         User1.setUsername(username, data)
         data.append(User1.username)
-    with open("Users.json", 'w') as file:
+    with open("data/Users.json", 'w') as file:
         json.dump(data, file, indent=0)
 
 
@@ -323,24 +329,24 @@ def create_acount ():
 def create_project (username):
     #Create Project object
     project1 = project(username, '', '', [])
-    #create "ID.json"
-    if not os.path.exists("ID.json"):
-        with open("ID.json", 'w') as file:
+    #create "data/ID.json"
+    if not os.path.exists("data/ID.json"):
+        with open("data/ID.json", 'w') as file:
             lst = []
             json.dump(lst,file, indent=0)
     #get ID
     ID = input('Enter a project ID: ') #Unik ID & Save
-    with open("ID.json", 'r') as file:    
+    with open("data/ID.json", 'r') as file:    
         data = json.load(file)
         project1.setID(ID, data)
         data.append(project1.ID)
-    with open("ID.json", 'w') as file: 
+    with open("data/ID.json", 'w') as file: 
         json.dump(data, file, indent=0)
 
     project1.Title = input('Enter a title: ') #Title
     user = username
     while user != '1':
-        with open('Users.json', 'r') as file: #Add Users
+        with open('data/Users.json', 'r') as file: #Add Users
             project1.add_member(user, file.read())
         #Add project to Users (encrypt)
         if os.path.exists('users/' + user + '.json'):
@@ -411,7 +417,7 @@ def edit_projet_leader(project, username):
         json.dump(information, file, indent=4)
 
     print(Panel(Text(f"{project.ID} - {project.Title}\n" , 'bold magenta') 
-    + Text("1.show members \n2.show tasks & edit & remove \n3.change info \n4.add/remove member \n5.exit", 'yellow')))
+    + Text("1.show members \n2.show tasks & edit & remove \n3.change info \n4.add/remove member \n5.Delete project \n6.exit", 'yellow')))
     k = input()
     if k == '1':
         print(project.Users)
@@ -443,7 +449,7 @@ def edit_projet_leader(project, username):
         n = input()
         if n == '1':
             newID = input(Text('Enter new ID: ', 'bold magenta'))
-            with open("ID.json ", 'r') as file:
+            with open("data/ID.json ", 'r') as file:
                 if newID in file.read():
                     print('repetitive ID')
                     edit_projet_leader(project, username)
@@ -467,9 +473,22 @@ def edit_projet_leader(project, username):
         n = input('1.add member\n2.remove member\n')
         if n == '1':
             user = input('Enter username: ')
-            with open('Users.json', 'r') as file:
-                file = file.read()
-                project.add_member(user,file)   
+            if os.path.exists('users/' + user + '.json'): #check
+                information = decrypt_user_info(user)
+            else:
+                print('user not found!')
+                return
+
+            with open('data/Users.json', 'r') as file: #Add User to project
+                project1.add_member(user, file.read())
+
+            #Add project to User
+            if user != username: 
+                information['projects_Member'].append(project1.ID)
+            else:
+                information['projects_Leader'].append(project1.ID)
+            encrypt_user_info(user, information)
+
         elif n == '2':
             user = input('Enter username: ')
             project.Users.remove(user)
@@ -478,8 +497,23 @@ def edit_projet_leader(project, username):
 
         edit_projet_leader(project, username)
         return
-            
+
     elif k == '5':
+        with open('projects/' + project.ID + '.json' , 'r') as file: #remove project from users data
+            data = json.load(file)
+        members = data["Members"]
+        leader = data["Leader"]
+        data = decrypt_user_info(member)
+        data["projects-Leader"].pop(project.ID)
+        for member in members:
+            data = decrypt_user_info(member)
+            data["projects-Member"].pop(project.ID)
+        
+        os.remove('projects/' + project.ID + '.json') #remove project file
+        Account_page(username)
+        return
+
+    elif k == '6':
         Account_page(username)
         return
 
@@ -781,7 +815,7 @@ def menu():
         password = console.input(Text("Enter password: ","bold green"))
         sign_in_admin(username, password)
     else:
-        print("I didn't understand! (Enter 1 or 2!)\n")
+        print("I didn't understand! (Enter 1 or 2 or 3!)\n")
         menu()
 
 def Account_page(username):
@@ -805,21 +839,24 @@ def Account_page_admin(username):
         username = input(Text('Enter a usernamt to inactive: ' , 'green'))
         information = decrypt_user_info(username)
         information['active'] = "Inactive"
+        encrypt_user_info(username, information)
         print(Text(f'User {username} Inactived.' , 'bold red'))
     elif k == '2':
         n = input(Text("All data will be delete; Are you sure? (1.yes)"))
         if n == '1':
-            if os.path.exists("Users.json"):
-                os.remove("Users.json")
-            if os.path.exists("Admin.json"):
-                os.remove("Admin.json")
-            if os.path.exists("ID.json"):
-                os.remove("ID.json")
-            if os.path.isdir("users"):
-                os.rmdir("users")
-            if os.path.isdir("projects"):
-                os.rmdir("projects")
+            if os.path.exists("data/Users.json"):
+                os.remove("data/Users.json")
+            if os.path.exists("data/Admin.json"):
+                os.remove("data/Admin.json")
+            if os.path.exists("data/ID.json"):
+                os.remove("data/ID.json")
 
+            if os.path.isdir("users"):
+                shutil.rmtree('users')
+                shutil.rmtree('users', ignore_errors=True)
+            if os.path.isdir("projects"):
+                shutil.rmtree('projects')
+                shutil.rmtree('projects', ignore_errors=True)
 
 menu()
 
