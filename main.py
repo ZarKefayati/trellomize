@@ -21,14 +21,14 @@ if not os.path.isdir('data'):
 #logging
 error_logger = logging.getLogger('error_logger')
 error_logger.setLevel(logging.ERROR)
-error_file_handler = logging.FileHandler('data/errors.log')
+error_file_handler = logging.FileHandler('errors.log')
 error_formatter = logging.Formatter('%(asctime)s - %(message)s')
 error_file_handler.setFormatter(error_formatter)
 error_logger.addHandler(error_file_handler)
 
 info_logger = logging.getLogger('info_logger')
 info_logger.setLevel(logging.INFO)
-info_file_handler = logging.FileHandler('data/user_actions.log')
+info_file_handler = logging.FileHandler('user_actions.log')
 info_formatter = logging.Formatter('%(asctime)s - %(message)s')
 info_file_handler.setFormatter(info_formatter)
 info_logger.addHandler(info_file_handler)
@@ -257,6 +257,7 @@ def sign_in_admin (username, password):
         if username in information.keys(): #check username
             if decrypt_admin_pass(username, password): #check password
                 Account_page_admin(username)
+                info_logger.info(f"Admin {username} signed in.")
             else:
                 k = input(Text('Password is incorrect.\nEnter your password or 1 to exit: ', 'red'))    
                 if k == '1': 
