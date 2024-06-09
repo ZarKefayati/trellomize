@@ -111,42 +111,57 @@ class project:
             self.ID = ID
 
     def add_member(self, username , file):
-        if username in file: #Correct Username 
-            if username not in self.Users: 
-                self.Users.append(username) #save
-            else: #Repetitive Username
-                username = input ("User is already here. \nEnter another one or 1 to exit:")
+        try:
+            if username in file: #Correct Username 
+                if username not in self.Users: 
+                    self.Users.append(username) #save
+                else: #Repetitive Username
+                    username = input ("User is already here. \nEnter another one or 1 to exit:")
+                    if username == '1': 
+                        Account_page(username)
+                        return
+                    else:
+                        self.add_member(username, file)
+                        return
+
+            else: #Unavailable Username
+                username = input ("Username is not exists. Enter username or 1 to exit:")
                 if username == '1': 
                     Account_page(username)
                     return
                 else:
                     self.add_member(username, file)
                     return
-
-        else: #Unavailable Username
-            username = input ("Username is not exists. Enter username or 1 to exit:")
-            if username == '1': 
-                Account_page(username)
-                return
-            else:
-                self.add_member(username, file)
-                return
+        except Exception as e:
+            print (e)
+            error_logger.error(f"error : {e} ")
+            return
 
     def add_task(self, task_name, members_names): #members_names is a list
-        for member_name in members_names:
-            if member_name not in self.Users:
-                print(f"'{member_name}' is not in the members of project.")
-                return
-        self.tasks_dict[task_name] = members_names
-        print(f"{task_name} is given to {members_names}.")
+        try:
+            for member_name in members_names:
+                if member_name not in self.Users:
+                    print(f"'{member_name}' is not in the members of project.")
+                    return
+            self.tasks_dict[task_name] = members_names
+            print(f"{task_name} is given to {members_names}.")
+        except Exception as e:
+            print (e)
+            error_logger.error(f"error : {e} ")
+            return
 
 
     def add_member_to_task(self, task_name, member_name):
-        if member_name in self.Users:
-            self.tasks_dict[task_name].append(member_name)
-            print(f"{task_name} is given to {member_name}.")
-        else:
-            print(f"'{member_name}' is not in the members of project.")
+        try:
+            if member_name in self.Users:
+                self.tasks_dict[task_name].append(member_name)
+                print(f"{task_name} is given to {member_name}.")
+            else:
+                print(f"'{member_name}' is not in the members of project.")
+        except Exception as e:
+            print (e)
+            error_logger.error(f"error : {e} ")
+            return
 
 
 
@@ -175,12 +190,17 @@ def decrypt_user_info(username):
         menu()
 
 def encrypt_user_info(username, info):
-    with open("data/mykey.key", 'rb') as mykey: #receive key 
-        key = mykey.read()
-        f = Fernet(key)
-    with open('users/' + username + '.json', 'wb') as file:
-        encrypted = f.encrypt((str(info)).encode())
-        file.write(encrypted)
+    try:
+        with open("data/mykey.key", 'rb') as mykey: #receive key 
+            key = mykey.read()
+            f = Fernet(key)
+        with open('users/' + username + '.json', 'wb') as file:
+            encrypted = f.encrypt((str(info)).encode())
+            file.write(encrypted)
+    except Exception as e:
+        print (e)
+        error_logger.error(f"error : {e} ")
+        return
 
 def decrypt_admin_pass(username, password):
     try: #file is empty or not exists
@@ -220,62 +240,72 @@ def is_valid_email(email):
 
 #sign in
 def sign_in (username, password):
-    #decryption
-    if os.path.exists('users/' + username + ".json"):
-        information = decrypt_user_info(username)
-        if information['password'] == password: #check password
-            if information["active"] == 'Active':
-                info_logger.info(f"user {username} signed in.")
-                Account_page(username)
-                return
-            else:
-                print('Your account is inactived by admin.')
-                menu()
-        else:
-            k = input(Text('Password is incorrect.\nEnter your password or 1 to exit: ', 'red'))    
-            if k == '1': 
-                menu()
-                return
-            else:
-                sign_in(username, k)
-                return
-    else:
-        k = input("Username is not exsits. \nEnter username or 1 to exit:")
-        if k == '1': 
-            menu()
-            return
-        else:
-
-            sign_in(k, password)
-            return
-
-def sign_in_admin (username, password):
-    #decryption
-    if os.path.exists("data/Admin.json") and os.path.getsize("data/Admin.json") > 0:
-        with open ("data/Admin.json", 'r') as file:
-            information = json.load(file)
-        if username in information.keys(): #check username
-            if decrypt_admin_pass(username, password): #check password
-                Account_page_admin(username)
-                info_logger.info(f"Admin {username} signed in.")
+    try:
+        #decryption
+        if os.path.exists('users/' + username + ".json"):
+            information = decrypt_user_info(username)
+            if information['password'] == password: #check password
+                if information["active"] == 'Active':
+                    info_logger.info(f"user {username} signed in.")
+                    Account_page(username)
+                    return
+                else:
+                    print('Your account is inactived by admin.')
+                    menu()
             else:
                 k = input(Text('Password is incorrect.\nEnter your password or 1 to exit: ', 'red'))    
                 if k == '1': 
                     menu()
                     return
                 else:
-                    sign_in_admin(username, k)
-                return
+                    sign_in(username, k)
+                    return
         else:
-            k = input(Text('Username is incorrect.\nEnter username or 1 to exit: ', 'red'))    
+            k = input("Username is not exsits. \nEnter username or 1 to exit:")
             if k == '1': 
                 menu()
                 return
             else:
-                sign_in_admin(k, password)
+
+                sign_in(k, password)
+                return
+    except Exception as e:
+        print (Text("There is a problem in sign in.\nPlease try again", "red"))
+        error_logger.error(f"error : {e} ")
+        return
+
+def sign_in_admin (username, password):
+    try:
+        #decryption
+        if os.path.exists("data/Admin.json") and os.path.getsize("data/Admin.json") > 0:
+            with open ("data/Admin.json", 'r') as file:
+                information = json.load(file)
+            if username in information.keys(): #check username
+                if decrypt_admin_pass(username, password): #check password
+                    Account_page_admin(username)
+                    info_logger.info(f"Admin {username} signed in.")
+                else:
+                    k = input(Text('Password is incorrect.\nEnter your password or 1 to exit: ', 'red'))    
+                    if k == '1': 
+                        menu()
+                        return
+                    else:
+                        sign_in_admin(username, k)
+                    return
+            else:
+                k = input(Text('Username is incorrect.\nEnter username or 1 to exit: ', 'red'))    
+                if k == '1': 
+                    menu()
+                    return
+                else:
+                    sign_in_admin(k, password)
+                return
+        else:
+            k = input("Something went wrong! sign up again.")
             return
-    else:
-        k = input("Something went wrong! sign up again.")
+    except Exception as e:
+        print (Text("There is a problem in sign in.\nPlease try again", "red"))
+        error_logger.error(f"error : {e} ")
         return
 
 #create
@@ -290,22 +320,32 @@ def create_acount ():
         print("Incorrect Email\n")
         create_acount()
     #create Users.json & data folder
-    if not os.path.isdir('data'):
-        os.makedirs('data')
-    if not os.path.exists("data/Users.json"):
-        with open("data/Users.json", 'w') as file:
-            lst = []
-            json.dump(lst, file, indent = 0)
+    try:
+        if not os.path.isdir('data'):
+            os.makedirs('data')
+        if not os.path.exists("data/Users.json"):
+            with open("data/Users.json", 'w') as file:
+                lst = []
+                json.dump(lst, file, indent = 0)
+    except Exception as e:
+        print (Text("There is a problem in opening files.", "red"))
+        error_logger.error(f"error : {e} ")
+        return
 
 
     #get username
-    username = input('Enter a username: ')
-    with open("data/Users.json", 'r') as file:    
-        data = json.load(file)
-        User1.setUsername(username, data)
-        data.append(User1.username)
-    with open("data/Users.json", 'w') as file:
-        json.dump(data, file, indent=0)
+    try:
+        username = input('Enter a username: ')
+        with open("data/Users.json", 'r') as file:    
+            data = json.load(file)
+            User1.setUsername(username, data)
+            data.append(User1.username)
+        with open("data/Users.json", 'w') as file:
+            json.dump(data, file, indent=0)
+    except Exception as e:
+        print (Text("There is a problem in opening files.", "red"))
+        error_logger.error(f"error : {e} ")
+        return
 
 
     #get password
@@ -334,52 +374,70 @@ def create_project (username):
     #Create Project object
     project1 = project(username, '', '', [])
     #create "data/ID.json"
-    if not os.path.exists("data/ID.json"):
-        with open("data/ID.json", 'w') as file:
-            lst = []
-            json.dump(lst,file, indent=0)
+    try:
+        if not os.path.exists("data/ID.json"):
+            with open("data/ID.json", 'w') as file:
+                lst = []
+                json.dump(lst,file, indent=0)
+    except Exception as e:
+        print (Text("There is a problem in opening files.", "red"))
+        error_logger.error(f"error : {e} ")
+        return
     #get ID
     ID = input('Enter a project ID: ') #Unik ID & Save
-    with open("data/ID.json", 'r') as file:    
-        data = json.load(file)
-        project1.setID(ID, data)
-        data.append(project1.ID)
-    with open("data/ID.json", 'w') as file: 
-        json.dump(data, file, indent=0)
+    try:
+        with open("data/ID.json", 'r') as file:    
+            data = json.load(file)
+            project1.setID(ID, data)
+            data.append(project1.ID)
+        with open("data/ID.json", 'w') as file: 
+            json.dump(data, file, indent=0)
+    except Exception as e:
+        print (Text("There is a problem in opening files.", "red"))
+        error_logger.error(f"error : {e} ")
+        return
 
     project1.Title = input('Enter a title: ') #Title
     user = username
-    while user != '1':
-        
-        #Add project to Users (encrypt)
-        if os.path.exists('users/' + user + '.json'):
-            information = decrypt_user_info(user)
-        else:
-            print('user not found!')
-            return
-        if user != username: 
-            with open('data/Users.json', 'r') as file: #Add Users
-                project1.add_member(user, file.read())
-            information['projects_Member'].append(project1.ID)
-        else:
-            information['projects_Leader'].append(project1.ID)
-        encrypt_user_info(user, information)
-        user = input(Text('Invite users to this project.\nEnter username or 1 to end: ', 'magenta')) #Add Users
-    
+    try:
+        while user != '1':
+            #Add project to Users (encrypt)
+            if os.path.exists('users/' + user + '.json'):
+                information = decrypt_user_info(user)
+            else:
+                print('user not found!')
+                return
+            if user != username: 
+                with open('data/Users.json', 'r') as file: #Add Users
+                    project1.add_member(user, file.read())
+                information['projects_Member'].append(project1.ID)
+            else:
+                information['projects_Leader'].append(project1.ID)
+            encrypt_user_info(user, information)
+            user = input(Text('Invite users to this project.\nEnter username or 1 to end: ', 'magenta')) #Add Users
+    except Exception as e:
+        print (Text("There is a problem.", "red"))
+        error_logger.error(f"error : {e} ")
+        return
     # Save Project
-    information = {
-        'ID' : project1.ID,
-        'Leader' : project1.Leader,
-        'Title' : project1.Title,
-        'Members' :  project1.Users,
-        'Tasks' : project1.tasks_dict
-        }
-    #create projects folder
-    if not os.path.isdir('projects'):
-        os.makedirs('projects')
-    with open('projects/' + project1.ID + '.json', 'w') as file:
-        json.dump(information, file, indent=4) 
-    info_logger.info(f"user {username} created project {project1.ID}.")
+    try:
+        information = {
+            'ID' : project1.ID,
+            'Leader' : project1.Leader,
+            'Title' : project1.Title,
+            'Members' :  project1.Users,
+            'Tasks' : project1.tasks_dict
+            }
+        #create projects folder
+        if not os.path.isdir('projects'):
+            os.makedirs('projects')
+        with open('projects/' + project1.ID + '.json', 'w') as file:
+            json.dump(information, file, indent=4) 
+        info_logger.info(f"user {username} created project {project1.ID}.")
+    except Exception as e:
+        print (Text("There is a problem in opening files.", "red"))
+        error_logger.error(f"error : {e} ")
+        return
     edit_projet_leader(project1,username)
     Account_page(username)
 
@@ -387,154 +445,175 @@ def create_Task (project, username):
     ID = project.ID
     task1 = Tasks()
     edit_task_member(task1, project, username)
-    task_item = {
-        "ID" : str(task1.ID),
-        "Title" : task1.name,
-        "Description" : task1.description,
-        "Start Date" : str(task1.start_date),  
-        "End Date" : str(task1.last_date),
-        "priority" : task1.priority,
-        "Status" : task1.status,
-        "Members" : task1.members,
-        "Comments" : task1.comments,
-        "History" : task1.history
-    }
-    project.tasks_dict[str(task1.ID)] = task_item
-    with open ('projects/' + ID + '.json', 'r') as file:
-        information = eval(file.read())
-    information["Tasks"][str(task1.ID)] = task_item
-    with open ('projects/' + ID + '.json', 'w') as file:
-        json.dump (information, file, indent=4)
-    info_logger.info(f"user {username} created task {task1.name} in project {project1.ID}.")
+    #Save task
+    try:
+        task_item = {
+            "ID" : str(task1.ID),
+            "Title" : task1.name,
+            "Description" : task1.description,
+            "Start Date" : str(task1.start_date),  
+            "End Date" : str(task1.last_date),
+            "priority" : task1.priority,
+            "Status" : task1.status,
+            "Members" : task1.members,
+            "Comments" : task1.comments,
+            "History" : task1.history
+        }
+        project.tasks_dict[str(task1.ID)] = task_item #add to project
+        with open ('projects/' + ID + '.json', 'r') as file: #save in file
+            information = eval(file.read())
+        information["Tasks"][str(task1.ID)] = task_item
+        with open ('projects/' + ID + '.json', 'w') as file:
+            json.dump (information, file, indent=4)
+        info_logger.info(f"user {username} created task {task1.name} in project {project.ID}.")
+    except Exception as e:
+        print (Text("There is a problem in saving task.", "red"))
+        error_logger.error(f"error : {e} ")
+        return
 
 #edit project
 def edit_projet_leader(project, username): 
-    # Save changes
-    information = {
-        'ID' : project.ID,
-        'Leader' : project.Leader,
-        'Title' : project.Title,
-        'Members' :  project.Users,
-        'Tasks' : project.tasks_dict
-        }
-    #create projects folder
-    with open('projects/' + project.ID + '.json', 'w') as file:
-        json.dump(information, file, indent=4)
+    try:
+        # Save changes
+        information = {
+            'ID' : project.ID,
+            'Leader' : project.Leader,
+            'Title' : project.Title,
+            'Members' :  project.Users,
+            'Tasks' : project.tasks_dict
+            }
+        #create projects folder
+        with open('projects/' + project.ID + '.json', 'w') as file:
+            json.dump(information, file, indent=4)
+    except Exception as e:
+        print (Text("There is a problem in saving project.", "red"))
+        error_logger.error(f"error : {e} ")
+        return
 
-    print(Panel(Text(f"{project.ID} - {project.Title}\n" , 'bold magenta') 
-    + Text("1.show members \n2.show tasks & edit & remove \n3.change info \n4.add/remove member \n5.Delete project \n6.exit", 'yellow')))
-    k = input()
-    if k == '1':
-        print(project.Users)
-        edit_projet_leader(project, username)
-        return
-    elif k == '2':
-        n = input('1.New Task\n2.show tasks\n3.remove task\n')
-        if n == '1':
-            create_Task(project, username)
-        elif n == '2':
-            show_tasks(project.ID)
-        elif n == '3':
-            tasks = project['Tasks'] #dict of tasks
-            id_i = {}
-            lst = []
-            for i , ID in zip(range(len(tasks)), tasks.keys()):
-                lst.append(str(i+1) + '.' + tasks[ID]['Title'])
-                id_i[str(i+1)] = ID
-            i = input(Task("Enter a number to remove" , 'magenta'))
-            project.delete_task(id_i[i])
-        else:
-            print(Text('invalid number' , 'red'))
-        edit_projet_leader(project, username)
-        return
-       
-    elif k == '3':
-        print(Text(f'ID : {project.ID} \nTitle : {project.Title}' , 'green'))
-        print('1.change ID\n2.change Title\n')
-        n = input()
-        if n == '1':
-            newID = input(Text('Enter new ID: ', 'bold magenta'))
-            with open("data/ID.json ", 'r') as file:
-                if newID in file.read():
-                    print('repetitive ID')
-                    edit_projet_leader(project, username)
-                    return
-            with open('projects/' + project.ID + '.json' , 'r') as file:
-                data = json.load(file)
-            with open('projects/' + newID + '.json' , 'w')as file:
-                data[project.ID] = newID
-                json.dump(data , file , indent = 4)
-            project.ID = newID
-        elif n == '2':
-            newTitle = input(Text('Enter new Title', 'magenta'))
-            project.Title = newTitle
-        else:
-            print(Text('invalid number!' , 'red'))
+    try:
+        print(Panel(Text(f"{project.ID} - {project.Title}\n" , 'bold magenta') 
+        + Text("1.show members \n2.show tasks & edit & remove \n3.change info \n4.add/remove member \n5.Delete project \n6.exit", 'yellow')))
+        k = input()
+        if k == '1':
+            print(project.Users)
+            edit_projet_leader(project, username)
             return
-        edit_projet_leader(project, username)
-        return
-    elif k == '4':
-        print(project.Users)
-        n = input('1.add member\n2.remove member\n')
-        if n == '1':
-            user = input('Enter username: ')
-            if os.path.exists('users/' + user + '.json'): #check
-                information = decrypt_user_info(user)
+        elif k == '2':
+            n = input('1.New Task\n2.show tasks\n3.remove task\n')
+            if n == '1':
+                create_Task(project, username)
+            elif n == '2':
+                show_tasks(project.ID)
+            elif n == '3':
+                tasks = project['Tasks'] #dict of tasks
+                id_i = {}
+                lst = []
+                for i , ID in zip(range(len(tasks)), tasks.keys()):
+                    lst.append(str(i+1) + '.' + tasks[ID]['Title'])
+                    id_i[str(i+1)] = ID
+                i = input(Task("Enter a number to remove" , 'magenta'))
+                project.delete_task(id_i[i])
             else:
-                print('user not found!')
-                return
-
-            with open('data/Users.json', 'r') as file: #Add User to project
-                project1.add_member(user, file.read())
-
-            #Add project to User
-            if user != username: 
-                information['projects_Member'].append(project1.ID)
-            else:
-                information['projects_Leader'].append(project1.ID)
-            encrypt_user_info(user, information)
-
-        elif n == '2':
-            user = input('Enter username: ')
-            project.Users.remove(user)
-        else:
-            print("invalid number")
-
-        edit_projet_leader(project, username)
-        return
-
-    elif k == '5':
-        with open('projects/' + project.ID + '.json' , 'r') as file: #remove project from users data
-            data = json.load(file)
-        members = data["Members"]
-        leader = data["Leader"]
-        data = decrypt_user_info(leader)
-        data["projects-Leader"].pop(project.ID)
-        for member in members:
-            data = decrypt_user_info(member)
-            data["projects-Member"].pop(project.ID)
+                print(Text('invalid number' , 'red'))
+            edit_projet_leader(project, username)
+            return
         
-        os.remove('projects/' + project.ID + '.json') #remove project file
-        Account_page(username)
-        return
+        elif k == '3':
+            print(Text(f'ID : {project.ID} \nTitle : {project.Title}' , 'green'))
+            print('1.change ID\n2.change Title\n')
+            n = input()
+            if n == '1':
+                newID = input(Text('Enter new ID: ', 'bold magenta'))
+                with open("data/ID.json ", 'r') as file:
+                    if newID in file.read():
+                        print('repetitive ID')
+                        edit_projet_leader(project, username)
+                        return
+                with open('projects/' + project.ID + '.json' , 'r') as file:
+                    data = json.load(file)
+                with open('projects/' + newID + '.json' , 'w')as file:
+                    data[project.ID] = newID
+                    json.dump(data , file , indent = 4)
+                project.ID = newID
+            elif n == '2':
+                newTitle = input(Text('Enter new Title', 'magenta'))
+                project.Title = newTitle
+            else:
+                print(Text('invalid number!' , 'red'))
+                return
+            edit_projet_leader(project, username)
+            return
+        elif k == '4':
+            print(project.Users)
+            n = input('1.add member\n2.remove member\n')
+            if n == '1':
+                user = input('Enter username: ')
+                if os.path.exists('users/' + user + '.json'): #check
+                    information = decrypt_user_info(user)
+                else:
+                    print('user not found!')
+                    return
 
-    elif k == '6':
-        Account_page(username)
+                with open('data/Users.json', 'r') as file: #Add User to project
+                    project1.add_member(user, file.read())
+
+                #Add project to User
+                if user != username: 
+                    information['projects_Member'].append(project1.ID)
+                else:
+                    information['projects_Leader'].append(project1.ID)
+                encrypt_user_info(user, information)
+
+            elif n == '2':
+                user = input('Enter username: ')
+                project.Users.remove(user)
+            else:
+                print("invalid number")
+
+            edit_projet_leader(project, username)
+            return
+
+        elif k == '5':
+            with open('projects/' + project.ID + '.json' , 'r') as file: #remove project from users data
+                data = json.load(file)
+            members = data["Members"]
+            leader = data["Leader"]
+            data = decrypt_user_info(leader)
+            data["projects-Leader"].pop(project.ID)
+            for member in members:
+                data = decrypt_user_info(member)
+                data["projects-Member"].pop(project.ID)
+            
+            os.remove('projects/' + project.ID + '.json') #remove project file
+            Account_page(username)
+            return
+
+        elif k == '6':
+            Account_page(username)
+            return
+    except Exception as e:
+        print (Text("There is a problem in edit by leader.", "red"))
+        error_logger.error(f"error : {e} ")
         return
 
 def edit_project(project, username):
-    print(Panel(Text(f"{project.ID} - {project.Title}\n" , 'bold magenta') + Text("1.show members \n2.show tasks \n3.exit", 'yellow')))
-    k = input()
-    if k == '1':
-        print(project.Users)
-        edit_project(project, username)
-        return
-    elif k == '2':
-        show_tasks(project.ID)
-        edit_projet(project, username)
-        return
-    elif k == '3':
-        Account_page(username)
+    try:
+        print(Panel(Text(f"{project.ID} - {project.Title}\n" , 'bold magenta') + Text("1.show members \n2.show tasks \n3.exit", 'yellow')))
+        k = input()
+        if k == '1':
+            print(project.Users)
+            edit_project(project, username)
+            return
+        elif k == '2':
+            show_tasks(project.ID)
+            edit_projet(project, username)
+            return
+        elif k == '3':
+            Account_page(username)
+            return
+    except Exception as e:
+        print (Text("There is a problem in editing project by member.", "red"))
+        error_logger.error(f"error : {e} ")
         return
 
 #edit task
@@ -555,11 +634,11 @@ def edit_task_member (task1, project, username):
     }
     project.tasks_dict[str(task1.ID)] = task_item
     print(Text('you can change the details.' , 'blue'), 
-    Panel('1.title'+ '\n' '2.description' + '\n' '3.start & end time' + '\n'
+    Panel(Text('1.title'+ '\n' '2.description' + '\n' '3.start & end time' + '\n'
     '4.change priority (CRITICAL, HIGH, MEDIUM, LOW(default)' + '\n'
     '5.change status (BACKLOG(default), TODO, DOING, DONE, ARCHIVED)'+ '\n'
     '6.give to members' + '\n' '7.add comment' + '\n' + '8.Show details'
-     + '\n' + '9.exit'))
+     + '\n' + '9.Show history' + '\n' + '10.exit' , "magenta")))
     k = input()
     if k == '1':
         print (task1.name)
@@ -570,7 +649,7 @@ def edit_task_member (task1, project, username):
 
     elif k == '2':
         print (task1.description)
-        task1.description = input('description of task (optional): ')
+        task1.description = input('description of task: ')
         task1.add_history(username,f'description changed to {task1.description}.')
         edit_task_member (task1, project, username)
         return
@@ -587,13 +666,13 @@ def edit_task_member (task1, project, username):
             error_logger.error(f"error : {e} ")
             print (f"time data {input_year} does not match format '%Y-%m-%d %H:%M:%S' \nor invalid date.")
         finally:
-            print (task1.start_date)
+            print (f"new date: {task1.start_date}")
         #end
         try: #does not match format
             input_year = input(f'Enter your Date to end: (e.g. { task1.last_date })')
             syear = dt.datetime.strptime(input_year, "%Y-%m-%d %H:%M:%S")
             task1.last_date = syear
-            task1.add_history(username,f'end of time changed to {task1.last_date}.')
+            task1.add_history(username,f'end of time changed to: {task1.last_date}.')
 
         except Exception as e:
             error_logger.error(f"error : {e} ")
@@ -626,30 +705,34 @@ def edit_task_member (task1, project, username):
         return
 
     elif k == '6':
-        
-        with open ('projects/' + ID + '.json') as file:
-            information = eval(file.read())
-        print(f"project members: {information['Members']}")
-        print(f'task members: {task1.members}')
-        if username == information['Leader']:
-            name = input('Enter member: ')
-            if name in information['Members']:
-                if name not in task1.members:
-                    task1.members.append(name)
-                    task1.add_history(username,f'{name} added to project.')
+        try:
+            with open ('projects/' + ID + '.json') as file:
+                information = eval(file.read())
+            print(f"project members: {information['Members']}")
+            print(f'task members: {task1.members}')
+            if username == information['Leader']:
+                name = input('Enter member: ')
+                if name in information['Members']:
+                    if name not in task1.members:
+                        task1.members.append(name)
+                        task1.add_history(username,f'{name} added to project.')
 
+                    else:
+                        print(f'{name} is already here.')
                 else:
-                    print(f'{name} is already here.')
+                    print('user is not member of project.')
             else:
-                print('user is not member of project.')
-        else:
-            print("you ara not leader in the project.",
-             "you can't add members.")
-        edit_task_member (task1, project, username)
-        return
+                print("you ara not leader in the project.",
+                "you can't add members.")
+            edit_task_member (task1, project, username)
+            return
+        except Exception as e:
+            print (Text("There is a problem in adding member.\n(opening file)", "red"))
+            error_logger.error(f"error : {e} ")
+            return
+        
 
     elif k == '7':
-        print(task1.add_comment)
         comment = input('Enter your comment: ')
         task1.add_comment(username, comment)
         task1.add_history(username,f'new comment: {comment}.')
@@ -657,29 +740,48 @@ def edit_task_member (task1, project, username):
         return
     
     elif k == '8':
-        task_item = {
-            "ID" : str(task1.ID),
-            "Title" : task1.name,
-            "Description" : task1.description,
-            "Start Date" : str(task1.start_date),  
-            "End Date" : str(task1.last_date),
-            "priority" : task1.priority,
-            "Status" : task1.status,
-            "Members" : task1.members,
-            "Comments" : task1.comments,
-            "History" : task1.history
-        }
-        print(task_item)
+        try:
+            task_item = {
+                "ID" : str(task1.ID),
+                "Title" : task1.name,
+                "Description" : task1.description,
+                "Start Date" : str(task1.start_date),  
+                "End Date" : str(task1.last_date),
+                "priority" : task1.priority,
+                "Status" : task1.status,
+                "Members" : task1.members,
+                "Comments" : task1.comments,
+                "History" : task1.history
+            }
+            table1 = Table(title=task1.name)
+            Values = []
+            for j in task_item.keys():
+                if j != "Members" and j != "Comments" and j !="History":
+                    table1.add_column(j, style="green")
+                    Values.append(task_item[j])
+            table1.add_row(*Values)
+            print(table1) 
+            print (f"Members: {task_item ["Members"]}" ,
+            f"Comments: {task_item["Comments"]}")
+            edit_task_member (task1, project, username)
+            return
+        except Exception as e:
+            print (Text("There is a problem in showing task.\n(opening file)", "red"))
+            error_logger.error(f"error : {e} ")
+            return
+
+    elif k == '9':
+        print(f"History: {task1.history}")
         edit_task_member (task1, project, username)
         return
-    elif k == '9':
+    elif k == '10':
         return
     else:
         print("I didn't understand! What should I do?")
         return
    
 def task_editor(task1, ID, username):
-    print(Panel('1.add comment' + '\n' + '2.Show details'))
+    print(Panel('1.add comment' + '\n' + '2.Show details' + '\n' + '3.exit'))
     if k == '1':
         comment = input('Enter your comment: ')
         task1.add_comment(username, comment)
@@ -687,20 +789,37 @@ def task_editor(task1, ID, username):
         return
     
     elif k == '2':
-        task_details = {
-            "ID" : task1.ID,
-            "Title" : task1.name,
-            "Description" : task1.description,
-            "Start Date" : task1.start_date,  
-            "End Date" : task1.last_date,
-            "priority" : task1.priority,
-            "Status" : task1.status,
-            "Members" : task1.members,
-            "Comments" : task1.comments,
-            "History" : task1.history
-        }
-        print(task_details)
+        try:
+            task_item = {
+                "ID" : str(task1.ID),
+                "Title" : task1.name,
+                "Description" : task1.description,
+                "Start Date" : str(task1.start_date),  
+                "End Date" : str(task1.last_date),
+                "priority" : task1.priority,
+                "Status" : task1.status,
+                "Members" : task1.members,
+                "Comments" : task1.comments,
+                "History" : task1.history
+            }
+            table1 = Table(title=task1.name)
+            Values = []
+            for j in task_item.keys():
+                if j != "Members" and j != "Comments" and j !="History":
+                    table1.add_column(j, style="green")
+                    Values.append(task_item[j])
+            table1.add_row(*Values)
+            print(table1) 
+            print (f"Members: {task_item ["Members"]}" ,
+            f"Comments: {task_item["Comments"]}")
+        except Exception as e:
+            print (Text("There is a problem in showing task.\n(opening file)", "red"))
+            error_logger.error(f"error : {e} ")
+            return
         task_editor(task1, ID, username)
+        return
+    elif k == '3':
+        Account_page(username)
         return
 
 
@@ -740,60 +859,66 @@ def show_projects(username, c): #c = leader (1) or member (2)
             Account_page(username)
     except Exception as e:
         error_logger.error(f"error : {e} ")
-        print('Sorry! Project not found.')
+        print(Text('Sorry! Project not found.', "red"))
         Account_page(username)
 
 def show_tasks(ID):
-    table = Table(title="All Tasks")
+    try:
+        table = Table(title="All Tasks")
 
-    table.add_column("BACKLOG", justify="right", style="cyan")
-    table.add_column("TODO", style="magenta")
-    table.add_column("DOING", justify="right", style="yellow")
-    table.add_column("DONE", justify="right", style="red")
-    table.add_column("ARCHIVED", justify="right", style="green")
+        table.add_column("BACKLOG", justify="right", style="cyan")
+        table.add_column("TODO", style="magenta")
+        table.add_column("DOING", justify="right", style="yellow")
+        table.add_column("DONE", justify="right", style="red")
+        table.add_column("ARCHIVED", justify="right", style="green")
 
-    tasks_by_status = {
-        "BACKLOG" : [],
-        "TODO" : [],
-        "DOING" : [],
-        "DONE" : [],
-        "ARCHIVED" : []
-    }
-    with open ('projects/' + ID + '.json', 'r') as file:
-        project = eval(file.read())
-    tasks = project['Tasks'] #dict of tasks
-    id_i = {}
-    for i , ID in zip(range(len(tasks)), tasks.keys()):
-        tasks_by_status[tasks[ID]['Status']].append(str(i+1) + '.' + tasks[ID]['Title'])
-        id_i[str(i+1)] = ID
+        tasks_by_status = {
+            "BACKLOG" : [],
+            "TODO" : [],
+            "DOING" : [],
+            "DONE" : [],
+            "ARCHIVED" : []
+        }
+        with open ('projects/' + ID + '.json', 'r') as file:
+            project = eval(file.read())
+        tasks = project['Tasks'] #dict of tasks
+        id_i = {}
+        for i , ID in zip(range(len(tasks)), tasks.keys()):
+            tasks_by_status[tasks[ID]['Status']].append(str(i+1) + '.' + tasks[ID]['Title'])
+            id_i[str(i+1)] = ID
 
-    lst = [] #columns
-    for status in tasks_by_status.values():
-        column = '\n'.join(status) #Write the names of the projects below
-        lst.append(column)
-    table.add_row(*lst)
-    console = Console()
-    console.print(table)
+        lst = [] #columns
+        for status in tasks_by_status.values():
+            column = '\n'.join(status) #Write the names of the projects below
+            lst.append(column)
+        table.add_row(*lst)
+        console = Console()
+        console.print(table)
 
-    i = input('Choose number to show details(or -1 to exit): ')
-    if i == '-1':
-        return
-    elif i.isdigit() & 0 < int(i) < len(id_i) + 1 :
-        task = tasks[id_i[i]]
-        table2 = Table(title=task['Title'])
-        Values = []
-        for j in tasks[id_i[i]].keys():
-            if j != "Members" and j != "Comments" and j !="History":
-                table2.add_column(j, style="green")
-                Values.append(task[j])
-        table2.add_row(*Values)
-        print(table2) 
-        print (f"Members: {task["Members"]}" ,
-        f"Comments: {task["Comments"]}" ,
-        f"History: {task["History"]}")
-    else:
-        print('incorrect number!')
-        menu()
+        i = input('Choose number to show details(or -1 to exit): ')
+        if i == '-1':
+            return
+        elif i.isdigit() & 0 < int(i) < len(id_i) + 1 :
+            task = tasks[id_i[i]]
+            table2 = Table(title=task['Title'])
+            Values = []
+            for j in tasks[id_i[i]].keys():
+                if j != "Members" and j != "Comments" and j !="History":
+                    table2.add_column(j, style="green")
+                    Values.append(task[j])
+            table2.add_row(*Values)
+            print(table2) 
+            print (f"Members: {task["Members"]}" ,
+            f"Comments: {task["Comments"]}" ,
+            f"History: {task["History"]}")
+        else:
+            print('incorrect number!')
+            menu()
+    except Exception as e:
+        error_logger.error(f"error : {e} ")
+        print(Text('There is a problem in showing tasks.', "red"))
+        Account_page(username)
+    
 
 
 #pages
@@ -855,7 +980,7 @@ def Account_page_admin(username):
                 os.remove("data/Admin.json")
             if os.path.exists("data/ID.json"):
                 os.remove("data/ID.json")
-
+            
             if os.path.isdir("users"):
                 shutil.rmtree('users')
                 shutil.rmtree('users', ignore_errors=True)
