@@ -3,6 +3,10 @@ import json
 import os
 from cryptography.fernet import Fernet
 
+#create Users.json & data folder
+if not os.path.isdir('data'):
+    os.makedirs('data')
+
 def encrypt_user_info(info): #info is dict
     with open("data/mykey.key", 'rb') as mykey: #receive key 
         key = mykey.read()
