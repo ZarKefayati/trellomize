@@ -350,8 +350,7 @@ def create_project (username):
     project1.Title = input('Enter a title: ') #Title
     user = username
     while user != '1':
-        with open('data/Users.json', 'r') as file: #Add Users
-            project1.add_member(user, file.read())
+        
         #Add project to Users (encrypt)
         if os.path.exists('users/' + user + '.json'):
             information = decrypt_user_info(user)
@@ -359,6 +358,8 @@ def create_project (username):
             print('user not found!')
             return
         if user != username: 
+            with open('data/Users.json', 'r') as file: #Add Users
+                project1.add_member(user, file.read())
             information['projects_Member'].append(project1.ID)
         else:
             information['projects_Leader'].append(project1.ID)
@@ -507,7 +508,7 @@ def edit_projet_leader(project, username):
             data = json.load(file)
         members = data["Members"]
         leader = data["Leader"]
-        data = decrypt_user_info(member)
+        data = decrypt_user_info(leader)
         data["projects-Leader"].pop(project.ID)
         for member in members:
             data = decrypt_user_info(member)
