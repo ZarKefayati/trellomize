@@ -61,7 +61,7 @@ class Tasks:
         self.name=name
         self.description=description
         self.start_date = dt.datetime.now().replace(microsecond=0)
-        self.last_date=self.start_date + dt.datetime(hour=24 , day=0)
+        self.last_date = self.start_date + dt.timedelta(hours=hour, days=day)
         self.degr=["CRITICAL" , "HIGH" , "MEDIUM" , "LOW"]
         if priority in self.degr:
             self.priority = priority
