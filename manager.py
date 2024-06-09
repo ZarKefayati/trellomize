@@ -8,9 +8,9 @@ if not os.path.isdir('data'):
     os.makedirs('data')
 
 def encrypt_user_info(info): #info is dict
-    if not os.path.exists('mykey.key'): #create key & save
+    if not os.path.exists('data/mykey.key'): #create key & save
         key = Fernet.generate_key()
-        with open('mykey.key', 'wb') as mykey:
+        with open('data/mykey.key', 'wb') as mykey:
             mykey.write(key)
     with open("data/mykey.key", 'rb') as mykey: #receive key 
         key = mykey.read()

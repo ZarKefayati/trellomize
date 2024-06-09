@@ -321,9 +321,9 @@ def create_acount ():
     }
     if not os.path.isdir('users'):
          os.makedirs('users')
-    if not os.path.exists('mykey.key'): #create key & save
+    if not os.path.exists('data/mykey.key'): #create key & save
         key = Fernet.generate_key()
-        with open('mykey.key', 'wb') as mykey:
+        with open('data/mykey.key', 'wb') as mykey:
             mykey.write(key)
     encrypt_user_info(User1.username, item)
     info_logger.info(f"user {username} created account.")
