@@ -41,5 +41,5 @@ with open('data/Admin.json', 'r') as file:
         print('You are already admin.')
     else:
         data[new_admin['username']] = (new_admin)
+        encrypt_user_info(data)
 
-encrypt_user_info(data)
