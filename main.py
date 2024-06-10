@@ -434,11 +434,13 @@ def create_project (username):
             if user != username: 
                 with open('data/Users.json', 'r') as file: #Add Users
                     project1.add_member(user, file.read())
-                information['projects_Member'].append(project1.ID)
+                if project1.ID not in information['projects_Member']:
+                    information['projects_Member'].append(project1.ID)
             else:
-                information['projects_Leader'].append(project1.ID)
+                if project1.ID not in information['projects_Leader']:
+                    information['projects_Leader'].append(project1.ID)
             encrypt_user_info(user, information)
-            user = input(Text('Invite users to this project.\nEnter username or 1 to end: ', 'magenta')) #Add Users
+            user = input(Text('Invite users to this project.\nEnter username or 1 to end: ', 'green')) #Add Users
     except Exception as e:
         print (Text("There is a problem.", "red"))
         error_logger.error(f"error : {e} ")
@@ -585,10 +587,12 @@ def edit_project_leader(project, username):
             members = data["Members"]
             leader = data["Leader"]
             data = decrypt_user_info(leader)
-            data["projects_Leader"].pop(project.ID)
+            data["projects_Leader"].pop(data["projects_Leader"].index(project.ID))
+            encrypt_user_info(leader, data)
             for member in members:
                 data = decrypt_user_info(member)
-                data["projects-Member"].pop(project.ID)
+                data["projects_Member"].pop(data["projects_Member"].index(project.ID))
+                encrypt_user_info(member, data)
             
             os.remove('projects/' + project.ID + '.json') #remove project file
             Account_page(username)
