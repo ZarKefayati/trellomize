@@ -540,6 +540,7 @@ def edit_project_leader(project, username):
                         return
                 with open('projects/' + project.ID + '.json' , 'r') as file:
                     data = json.load(file)
+                os.remove("projects/" + project.ID + '.json')
                 with open('projects/' + newID + '.json' , 'w')as file:
                     data[project.ID] = newID
                     json.dump(data , file , indent = 4)
