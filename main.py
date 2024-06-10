@@ -790,6 +790,7 @@ def task_editor(task1, project, username):
     if k == '1':
         comment = input('Enter your comment: ')
         task1.add_comment(username, comment)
+        task1.add_history(username,f'new comment: {comment}.')
         ID = project.ID
         save_task(task1, project)
         task_editor(task1, project, username)
